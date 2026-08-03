@@ -135,8 +135,13 @@ export default function RoomPage() {
         setRemoteUsers((prev) => prev.filter((u) => u.uid !== String(user.uid)));
       });
 
+      // Fetch Agora token from server
+      const tokenRes = await fetch(`/api/agora-token?channel=${encodeURIComponent(String(roomId))}`);
+      const tokenData = await tokenRes.json();
+      const agoraToken = tokenData.token ?? null;
+
       // Join the channel
-      await agoraClient.join(APP_ID, String(roomId), null, userId);
+      await agoraClient.join(APP_ID, String(roomId), agoraToken, userId);
 
       // Create local tracks
       const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
