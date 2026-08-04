@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import clientPromise from "@/lib/db";
 import { headers } from "next/headers";
-import type { Filter, Document } from "mongodb";
 
-// GET /api/friends — friend list + incoming requests + search users
+// better-auth stores users with string `id` field (not ObjectId _id).
+// All queries on the user collection MUST use the `id` field.
+
+async function getUsersByIds(db: any, ids: string[]) {
+  if (!ids.length) return [];
+  return db
+    .collection("user")
+    .find({ id: { $in: ids } }, { projection: { id: 1, name: 1, email: 1, image: 1 } })
+    .toArray();
+}
+
+// GET /api/friends
 export async function GET(req: NextRequest) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -17,28 +27,24 @@ export async function GET(req: NextRequest) {
   const query = searchParams.get("search");
 
   if (query) {
-    // Search users by name or email (excluding self)
+    // Search users by name or email (exclude self)
     const users = await db
       .collection("user")
       .find(
         {
-          $and: [
-            { _id: { $ne: userId } },
-            {
-              $or: [
-                { name: { $regex: query, $options: "i" } },
-                { email: { $regex: query, $options: "i" } },
-              ],
-            },
+          id: { $ne: userId },
+          $or: [
+            { name: { $regex: query, $options: "i" } },
+            { email: { $regex: query, $options: "i" } },
           ],
-        } as Filter<Document>,
-        { projection: { name: 1, email: 1, image: 1 } }
+        },
+        { projection: { id: 1, name: 1, email: 1, image: 1 } }
       )
       .limit(10)
       .toArray();
 
-    // Get existing friend/request status for each user
-    const userIdList = users.map((u) => String(u._id));
+    const userIdList = users.map((u) => String(u.id));
+
     const statuses = await db
       .collection("friendRequests")
       .find({
@@ -50,7 +56,7 @@ export async function GET(req: NextRequest) {
       .toArray();
 
     const result = users.map((u) => {
-      const sid = String(u._id);
+      const sid = String(u.id);
       const rel = statuses.find(
         (s) => (s.from === userId && s.to === sid) || (s.to === userId && s.from === sid)
       );
@@ -67,7 +73,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ users: result });
   }
 
-  // Get accepted friends
+  // Get accepted friend relationships
   const friendDocs = await db
     .collection("friendRequests")
     .find({ $or: [{ from: userId }, { to: userId }], status: "accepted" })
@@ -75,12 +81,13 @@ export async function GET(req: NextRequest) {
 
   const friendIds = friendDocs.map((f) => (f.from === userId ? f.to : f.from));
 
-  const friends = friendIds.length
+  // Fetch friend user details using string `id` field
+  const friendUsers = friendIds.length
     ? await db
         .collection("user")
         .find(
-          { _id: { $in: friendIds } } as Filter<Document>,
-          { projection: { name: 1, email: 1, image: 1 } }
+          { id: { $in: friendIds } },
+          { projection: { id: 1, name: 1, email: 1, image: 1 } }
         )
         .toArray()
     : [];
@@ -96,14 +103,14 @@ export async function GET(req: NextRequest) {
     ? await db
         .collection("user")
         .find(
-          { _id: { $in: incomingIds } } as Filter<Document>,
-          { projection: { name: 1, email: 1, image: 1 } }
+          { id: { $in: incomingIds } },
+          { projection: { id: 1, name: 1, email: 1, image: 1 } }
         )
         .toArray()
     : [];
 
   const incomingWithMeta = incoming.map((r) => {
-    const u = incomingUsers.find((u) => String(u._id) === r.from);
+    const u = incomingUsers.find((u) => String(u.id) === r.from);
     return {
       requestId: String(r._id),
       from: r.from,
@@ -114,8 +121,8 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json({
-    friends: friends.map((f) => ({
-      id: String(f._id),
+    friends: friendUsers.map((f) => ({
+      id: String(f.id),
       name: f.name,
       email: f.email,
       image: f.image ?? null,

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { Logo, GreenDot } from "@/lib/ui";
 import {
@@ -158,7 +159,7 @@ export default function Dashboard() {
       {/* Nav */}
       <nav className="sticky top-0 z-40 glass border-b border-[#1F2D3D]">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Logo/>
+          <Link href="/" className="hover:opacity-80 transition-opacity"><Logo/></Link>
           <div className="flex items-center gap-1 p-1 rounded-xl" style={{background:"#141B23",border:"1px solid #1F2D3D"}}>
             {tabs.map(({id,label,icon:Icon,badge})=>(
               <button key={id} onClick={()=>setActiveTab(id)}
@@ -177,6 +178,29 @@ export default function Dashboard() {
       </nav>
 
       <main className="max-w-5xl mx-auto px-4 py-8">
+        {/* Welcome header */}
+        <div className="mb-8 fade-up">
+          <h1 className="font-sora font-extrabold text-3xl text-[#E9EEF3]">
+            স্বাগতম, {session.user.name?.split(" ")[0]} 👋
+          </h1>
+          <p className="text-[#6B7E93] font-manrope text-sm mt-1">
+            {new Date().toLocaleDateString("bn-BD", { weekday:"long", year:"numeric", month:"long", day:"numeric" })}
+          </p>
+        </div>
+
+        {/* Quick stats */}
+        <div className="grid grid-cols-3 gap-3 mb-8">
+          {[
+            { label:"বন্ধু", value: friends.length, color:"#3DF29B" },
+            { label:"পেন্ডিং রিকোয়েস্ট", value: incoming.length, color:"#F97316" },
+            { label:"ইনকামিং কল", value: incomingCall ? 1 : 0, color:"#4F8EF7" },
+          ].map(s => (
+            <div key={s.label} className="card p-4 text-center" style={{background:"#141B23"}}>
+              <p className="font-sora font-extrabold text-2xl" style={{color:s.color}}>{s.value}</p>
+              <p className="text-[#6B7E93] text-xs font-manrope mt-0.5">{s.label}</p>
+            </div>
+          ))}
+        </div>
 
         {/* HOME TAB */}
         {activeTab==="home" && (

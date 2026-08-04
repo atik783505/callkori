@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import HeroCTA from "@/components/HeroCTA";
 import { Logo, SectionLabel, GreenDot, Waveform } from "@/lib/ui";
 import { Shield, Zap, Globe, Users, Video, Link2, ChevronRight, Star } from "lucide-react";
 
@@ -128,14 +129,7 @@ export default function HomePage() {
             <p className="text-[#6B7E93] text-lg font-manrope leading-relaxed mb-8 max-w-md">
               বন্ধু যোগ করুন, ইনভাইট লিংক শেয়ার করুন এবং এক ক্লিকে HD ভিডিও কল শুরু করুন।
             </p>
-            <div className="flex flex-wrap gap-3 mb-8">
-              <Link href="/dashboard" className="btn-primary px-7 py-3.5 text-base inline-flex items-center gap-2">
-                মিট শুরু করুন <ChevronRight size={18} />
-              </Link>
-              <Link href="/features" className="btn-ghost px-7 py-3.5 text-base inline-flex items-center gap-2">
-                ফিচার দেখুন
-              </Link>
-            </div>
+            <HeroCTA />
             <div className="flex flex-wrap gap-5 text-sm font-manrope text-[#6B7E93]">
               {["✓ বিনামূল্যে","✓ কোনো ডাউনলোড নেই","✓ এন্ড-টু-এন্ড এনক্রিপ্টেড"].map(t=>(
                 <span key={t} className="text-[#3DF29B]">{t}</span>
