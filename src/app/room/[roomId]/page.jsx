@@ -6,7 +6,8 @@ import AgoraRTC from "agora-rtc-sdk-ng";
 import { Logo, GreenDot, Waveform } from "@/lib/ui";
 import {
   Mic, MicOff, Video as VideoIcon, VideoOff, PhoneOff,
-  Check, Users, Loader2, Link2, PhoneCall, MessageSquare, MoreHorizontal,
+  Check, Users, Loader2, Link2, PhoneCall, MessageSquare,
+  Monitor, MonitorOff, Wand2,
 } from "lucide-react";
 
 const APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID;
@@ -99,6 +100,7 @@ export default function RoomPage() {
 
   const [micOn, setMicOn] = useState(searchParams.get("mic") !== "false");
   const [camOn, setCamOn] = useState(searchParams.get("cam") !== "false");
+  const [noiseCancel, setNoiseCancel] = useState(searchParams.get("nc") !== "false");
   const [remoteUsers, setRemoteUsers] = useState([]);
   const [status, setStatus] = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -106,11 +108,14 @@ export default function RoomPage() {
   const [incomingCall, setIncomingCall] = useState(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [screenSharing, setScreenSharing] = useState(false);
 
   const clientRef = useRef(null);
   const localAudioRef = useRef(null);
   const localVideoRef = useRef(null);
   const localVideoElRef = useRef(null);
+  const screenTrackRef = useRef(null);
+  const screenClientRef = useRef(null);
   const initializedRef = useRef(false);
   const leavingRef = useRef(false);
 
@@ -120,6 +125,10 @@ export default function RoomPage() {
     if (initializedRef.current) return;
     initializedRef.current = true;
     setStatus("connecting");
+
+    // Read lobby settings from URL
+    const nc = searchParams.get("nc") !== "false"; // noise cancel default on
+
     try {
       const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       clientRef.current = client;
@@ -127,28 +136,64 @@ export default function RoomPage() {
       client.on("user-published", async (user, mediaType) => {
         await client.subscribe(user, mediaType);
         if (mediaType === "video") {
-          setRemoteUsers(prev => [...prev.filter(u=>u.uid!==String(user.uid)), {uid:String(user.uid),videoTrack:user.videoTrack,name:null,speaking:false}]);
+          setRemoteUsers(prev => [
+            ...prev.filter(u => u.uid !== String(user.uid)),
+            { uid: String(user.uid), videoTrack: user.videoTrack, name: null, speaking: false },
+          ]);
         }
         if (mediaType === "audio") user.audioTrack?.play();
       });
       client.on("user-unpublished", (user, mediaType) => {
-        if (mediaType==="video") setRemoteUsers(prev=>prev.map(u=>u.uid===String(user.uid)?{...u,videoTrack:null}:u));
+        if (mediaType === "video")
+          setRemoteUsers(prev => prev.map(u =>
+            u.uid === String(user.uid) ? { ...u, videoTrack: null } : u
+          ));
       });
-      client.on("user-left", (user) => setRemoteUsers(prev=>prev.filter(u=>u.uid!==String(user.uid))));
+      client.on("user-left", (user) =>
+        setRemoteUsers(prev => prev.filter(u => u.uid !== String(user.uid)))
+      );
 
-      const tokenRes = await fetch(`/api/agora-token?channel=${encodeURIComponent(String(roomId))}`);
+      const tokenRes = await fetch(
+        `/api/agora-token?channel=${encodeURIComponent(String(roomId))}`
+      );
       const { token } = await tokenRes.json();
-      await client.join(APP_ID, String(roomId), token??null, userId);
+      await client.join(APP_ID, String(roomId), token ?? null, userId);
 
-      const [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks({}, { encoderConfig:"360p_1" });
+      // Mobile-safe track creation with noise cancellation
+      let audioTrack = null;
+      let videoTrack = null;
+
+      // Try together first
+      try {
+        [audioTrack, videoTrack] = await AgoraRTC.createMicrophoneAndCameraTracks(
+          { AEC: true, ANS: nc, AGC: true },
+          { encoderConfig: "360p_1", facingMode: "user" }
+        );
+      } catch (_) {
+        // Fallback: create separately (common on mobile)
+        try {
+          audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+            AEC: true, ANS: nc, AGC: true,
+          });
+        } catch (_) {}
+        try {
+          videoTrack = await AgoraRTC.createCameraVideoTrack({
+            encoderConfig: "360p_1",
+            facingMode: "user",
+          });
+        } catch (_) {}
+      }
+
       localAudioRef.current = audioTrack;
       localVideoRef.current = videoTrack;
 
-      if (!micOn) audioTrack.setEnabled(false);
-      if (!camOn) videoTrack.setEnabled(false);
-      if (localVideoElRef.current) videoTrack.play(localVideoElRef.current);
+      if (audioTrack && !micOn) audioTrack.setEnabled(false);
+      if (videoTrack && !camOn) videoTrack.setEnabled(false);
+      if (videoTrack && localVideoElRef.current) videoTrack.play(localVideoElRef.current);
 
-      await client.publish([audioTrack, videoTrack]);
+      const tracksToPublish = [audioTrack, videoTrack].filter(Boolean);
+      if (tracksToPublish.length) await client.publish(tracksToPublish);
+
       setStatus("connected");
     } catch (err) {
       console.error(err);
@@ -183,8 +228,75 @@ export default function RoomPage() {
 
   const toggleMic = () => { localAudioRef.current?.setEnabled(!micOn); setMicOn(v=>!v); };
   const toggleCam = () => { localVideoRef.current?.setEnabled(!camOn); setCamOn(v=>!v); };
+
+  // Live noise cancellation toggle
+  const toggleNoiseCancel = async () => {
+    const track = localAudioRef.current;
+    if (!track) return;
+    try {
+      // setConfig updates audio processing in real-time
+      await track.setAudioFrameCallback(null);
+      // ANS = Automatic Noise Suppression
+      if (noiseCancel) {
+        track.setConfig?.({ ANS: false, AEC: true, AGC: true });
+      } else {
+        track.setConfig?.({ ANS: true, AEC: true, AGC: true });
+      }
+      setNoiseCancel(v => !v);
+    } catch {
+      setNoiseCancel(v => !v); // still toggle UI even if setConfig not supported
+    }
+  };
+
+  // Screen sharing
+  const toggleScreenShare = async () => {
+    if (screenSharing) {
+      // Stop screen share
+      screenTrackRef.current?.close();
+      screenTrackRef.current = null;
+      await screenClientRef.current?.leave().catch(()=>{});
+      screenClientRef.current = null;
+      setScreenSharing(false);
+      return;
+    }
+    try {
+      // Create a separate Agora client for screen share
+      const screenClient = AgoraRTC.createClient({ mode:"rtc", codec:"vp8" });
+      screenClientRef.current = screenClient;
+
+      const tokenRes = await fetch(`/api/agora-token?channel=${encodeURIComponent(String(roomId))}`);
+      const { token } = await tokenRes.json();
+
+      // Join with a different uid (userId + "-screen")
+      await screenClient.join(APP_ID, String(roomId), token??null, `${session?.user?.id}-screen`);
+
+      const screenTrack = await AgoraRTC.createScreenVideoTrack({ encoderConfig:"1080p_1" }, "disable");
+      screenTrackRef.current = screenTrack;
+
+      // If browser returns an array [videoTrack, audioTrack]
+      const track = Array.isArray(screenTrack) ? screenTrack[0] : screenTrack;
+      await screenClient.publish(track);
+      setScreenSharing(true);
+
+      // Stop screen share if user clicks browser's "Stop sharing"
+      track.on("track-ended", () => {
+        track.close();
+        screenClient.leave().catch(()=>{});
+        screenClientRef.current = null;
+        screenTrackRef.current = null;
+        setScreenSharing(false);
+      });
+    } catch (err) {
+      console.error("Screen share error:", err);
+      screenClientRef.current?.leave().catch(()=>{});
+      screenClientRef.current = null;
+      screenTrackRef.current = null;
+    }
+  };
   const leaveCall = async () => {
     leavingRef.current = true;
+    screenTrackRef.current?.close();
+    await screenClientRef.current?.leave().catch(()=>{});
     localAudioRef.current?.close();
     localVideoRef.current?.close();
     await clientRef.current?.leave().catch(()=>{});
@@ -269,6 +381,7 @@ export default function RoomPage() {
               )}
               <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-lg" style={{background:"rgba(11,15,20,.85)"}}>
                 <GreenDot/><span className="text-[#E9EEF3] text-xs font-manrope">আপনি · {displayName}</span>
+                {screenSharing && <span className="ml-1 text-[#3DF29B] text-xs font-sora font-bold">● স্ক্রিন শেয়ার</span>}
               </div>
               {!micOn && (
                 <div className="absolute top-3 right-3 z-10 p-1.5 rounded-lg" style={{background:"#FF5C5C90"}}>
@@ -287,6 +400,8 @@ export default function RoomPage() {
           style={{background:"rgba(20,27,35,.95)",backdropFilter:"blur(20px)",border:"1px solid #1F2D3D"}}>
           <CtrlBtn onClick={toggleMic} active={micOn} icon={Mic} offIcon={MicOff} label={micOn?"মাইক বন্ধ":"মাইক চালু"}/>
           <CtrlBtn onClick={toggleCam} active={camOn} icon={VideoIcon} offIcon={VideoOff} label={camOn?"ক্যামেরা বন্ধ":"ক্যামেরা চালু"}/>
+          <CtrlBtn onClick={toggleNoiseCancel} active={noiseCancel} icon={Wand2} label={noiseCancel?"NC চালু":"NC বন্ধ"}/>
+          <CtrlBtn onClick={toggleScreenShare} active={!screenSharing} icon={Monitor} offIcon={MonitorOff} label={screenSharing?"শেয়ার বন্ধ":"স্ক্রিন"}/>
           <CtrlBtn onClick={()=>setParticipantsOpen(v=>!v)} active={true} icon={Users} label={`${total} জন`}/>
           <CtrlBtn onClick={()=>setChatOpen(v=>!v)} active={true} icon={MessageSquare} label="চ্যাট"/>
           <CtrlBtn onClick={leaveCall} danger active={true} icon={PhoneOff} label="ছেড়ে দিন"/>

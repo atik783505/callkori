@@ -57,15 +57,27 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
     if (isSignUp) {
       await authClient.signUp.email({ email, password, name }, {
-        onSuccess: () => router.push("/dashboard"),
-        onError: (ctx) => { setError(ctx.error.message); setLoading(false); },
+        onSuccess: () => {
+          // Full reload so session cookie is properly read
+          window.location.href = "/dashboard";
+        },
+        onError: (ctx) => {
+          setError(ctx.error.message);
+          setLoading(false);
+        },
       });
     } else {
       await authClient.signIn.email({ email, password }, {
-        onSuccess: () => router.push("/dashboard"),
-        onError: (ctx) => { setError(ctx.error.message); setLoading(false); },
+        onSuccess: () => {
+          window.location.href = "/dashboard";
+        },
+        onError: (ctx) => {
+          setError(ctx.error.message);
+          setLoading(false);
+        },
       });
     }
   };
