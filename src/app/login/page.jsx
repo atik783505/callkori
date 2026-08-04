@@ -1,8 +1,47 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { Video, Lock, Mail, User, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Logo, GreenDot, Waveform } from "@/lib/ui";
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
+
+function CallPreview() {
+  return (
+    <div className="hidden lg:flex flex-col justify-center items-center h-full p-10"
+      style={{ background: "linear-gradient(135deg,#0D1117 0%,#141B23 100%)" }}>
+      <div className="w-full max-w-xs">
+        <div className="card p-4 mb-6 float-anim" style={{ background: "#141B23" }}>
+          <div className="flex items-center gap-2 mb-3">
+            <GreenDot />
+            <span className="text-[#3DF29B] text-xs font-bold font-sora">LIVE · ck-a3f9b2</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {[{ n:"র", c:"#4F8EF7", sp:true },{ n:"ক", c:"#A855F7", sp:false },
+              { n:"ত", c:"#F97316", sp:false },{ n:"স", c:"#3DF29B", sp:false }].map((t) => (
+              <div key={t.n} className={`rounded-xl aspect-video flex items-center justify-center text-xl font-bold text-white font-sora ${t.sp ? "ring-2 ring-[#3DF29B] glow-green" : ""}`}
+                style={{ background: `linear-gradient(135deg,${t.c}22,${t.c}44)` }}>
+                {t.n}
+                {t.sp && (
+                  <div className="absolute bottom-1 right-2">
+                    <Waveform bars={3} active />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-center gap-2">
+            {["🎙️","📷","📵"].map(e => (
+              <div key={e} className="w-8 h-8 rounded-lg bg-[#1A2330] flex items-center justify-center text-sm">{e}</div>
+            ))}
+          </div>
+        </div>
+        <p className="text-[#E9EEF3] font-sora font-bold text-xl text-center mb-2">ভিডিও কলে কাছে থাকুন</p>
+        <p className="text-[#6B7E93] font-manrope text-sm text-center">বিনামূল্যে একাউন্ট খুলুন এবং এখনই শুরু করুন।</p>
+      </div>
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -18,7 +57,6 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
-
     if (isSignUp) {
       await authClient.signUp.email({ email, password, name }, {
         onSuccess: () => router.push("/dashboard"),
@@ -33,124 +71,90 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background glow effects */}
-      <div className="absolute top-[-10%] left-[-5%] w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-5%] w-96 h-96 bg-violet-600/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen grid lg:grid-cols-2" style={{ background: "#0B0F14" }}>
+      <CallPreview />
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center gap-2.5 mb-2">
-            <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/40">
-              <Video size={20} className="text-white" />
-            </div>
-            <span className="text-2xl font-bold text-white tracking-tight">CallKori</span>
+      {/* Form side */}
+      <div className="flex flex-col justify-center items-center p-6 lg:p-12">
+        <div className="w-full max-w-md">
+          <div className="mb-8">
+            <Link href="/"><Logo /></Link>
           </div>
-          <p className="text-slate-400 text-sm">বন্ধুদের সাথে HD ভিডিও কলে থাকুন</p>
-        </div>
 
-        {/* Card */}
-        <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-700/60 rounded-2xl p-8 shadow-2xl">
+          <h1 className="font-sora font-extrabold text-3xl text-[#E9EEF3] mb-2">
+            {isSignUp ? "একাউন্ট তৈরি করুন" : "স্বাগতম ফিরে"}
+          </h1>
+          <p className="text-[#6B7E93] font-manrope text-sm mb-8">
+            {isSignUp ? "বিনামূল্যে যোগ দিন এবং শুরু করুন।" : "আপনার একাউন্টে লগইন করুন।"}
+          </p>
+
           {/* Tab switcher */}
-          <div className="flex bg-slate-800/80 rounded-xl p-1 mb-7">
-            <button
-              onClick={() => { setIsSignUp(false); setError(""); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                !isSignUp ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              লগইন
-            </button>
-            <button
-              onClick={() => { setIsSignUp(true); setError(""); }}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                isSignUp ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-white"
-              }`}
-            >
-              নতুন একাউন্ট
-            </button>
+          <div className="flex gap-1 p-1 rounded-xl mb-7" style={{ background: "#141B23", border: "1px solid #1F2D3D" }}>
+            {[["লগইন", false], ["নতুন একাউন্ট", true]].map(([label, val]) => (
+              <button key={String(val)} onClick={() => { setIsSignUp(val); setError(""); }}
+                className={`flex-1 py-2 rounded-lg text-sm font-sora font-semibold transition-all ${isSignUp === val ? "bg-[#3DF29B] text-[#0B0F14]" : "text-[#6B7E93] hover:text-[#E9EEF3]"}`}>
+                {label}
+              </button>
+            ))}
           </div>
 
           <form onSubmit={handleAuth} className="space-y-4">
             {isSignUp && (
               <div className="relative group">
-                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={17} />
-                <input
-                  type="text"
-                  placeholder="আপনার নাম"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/40 transition-all"
-                />
+                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7E93] group-focus-within:text-[#3DF29B] transition-colors" />
+                <input type="text" placeholder="আপনার নাম" required value={name} onChange={e => setName(e.target.value)}
+                  className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm font-manrope text-[#E9EEF3] placeholder-[#6B7E93] outline-none transition-all"
+                  style={{ background: "#141B23", border: "1px solid #1F2D3D" }}
+                  onFocus={e => e.target.style.borderColor = "#3DF29B55"}
+                  onBlur={e => e.target.style.borderColor = "#1F2D3D"} />
               </div>
             )}
-
             <div className="relative group">
-              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={17} />
-              <input
-                type="email"
-                placeholder="ইমেইল অ্যাড্রেস"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/40 transition-all"
-              />
+              <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7E93] group-focus-within:text-[#3DF29B] transition-colors" />
+              <input type="email" placeholder="ইমেইল অ্যাড্রেস" required value={email} onChange={e => setEmail(e.target.value)}
+                className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm font-manrope text-[#E9EEF3] placeholder-[#6B7E93] outline-none transition-all"
+                style={{ background: "#141B23", border: "1px solid #1F2D3D" }}
+                onFocus={e => e.target.style.borderColor = "#3DF29B55"}
+                onBlur={e => e.target.style.borderColor = "#1F2D3D"} />
             </div>
-
             <div className="relative group">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-indigo-400 transition-colors" size={17} />
-              <input
-                type={showPass ? "text" : "password"}
-                placeholder="পাসওয়ার্ড"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 pl-10 pr-11 py-3 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/40 transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPass(!showPass)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
-                tabIndex={-1}
-              >
-                {showPass ? <EyeOff size={17} /> : <Eye size={17} />}
+              <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7E93] group-focus-within:text-[#3DF29B] transition-colors" />
+              <input type={showPass ? "text" : "password"} placeholder="পাসওয়ার্ড" required value={password} onChange={e => setPassword(e.target.value)}
+                className="w-full pl-11 pr-12 py-3.5 rounded-xl text-sm font-manrope text-[#E9EEF3] placeholder-[#6B7E93] outline-none transition-all"
+                style={{ background: "#141B23", border: "1px solid #1F2D3D" }}
+                onFocus={e => e.target.style.borderColor = "#3DF29B55"}
+                onBlur={e => e.target.style.borderColor = "#1F2D3D"} />
+              <button type="button" onClick={() => setShowPass(v => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B7E93] hover:text-[#E9EEF3] transition-colors">
+                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 text-sm px-4 py-3 rounded-xl">
+              <div className="rounded-xl px-4 py-3 text-sm font-manrope" style={{ background: "#FF5C5C12", border: "1px solid #FF5C5C33", color: "#FF5C5C" }}>
                 {error}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-600/30 mt-2"
-            >
+            <button type="submit" disabled={loading}
+              className="btn-primary w-full py-3.5 text-sm flex items-center justify-center gap-2 disabled:opacity-60">
               {loading ? (
-                <span className="flex items-center gap-2">
-                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                  </svg>
-                  প্রসেসিং...
-                </span>
+                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                </svg>
               ) : (
-                <>
-                  {isSignUp ? "একাউন্ট খুলুন" : "লগইন করুন"}
-                  <ArrowRight size={17} />
-                </>
+                <>{isSignUp ? "একাউন্ট খুলুন" : "লগইন করুন"} <ArrowRight size={16} /></>
               )}
             </button>
           </form>
-        </div>
 
-        <p className="text-center text-slate-600 text-xs mt-6">
-          © 2024 CallKori · সর্বস্বত্ব সংরক্ষিত
-        </p>
+          <p className="mt-8 text-center text-xs text-[#6B7E93] font-manrope">
+            এগিয়ে যাওয়ার মাধ্যমে আপনি আমাদের{" "}
+            <a href="#" className="text-[#3DF29B] hover:underline">Terms</a> ও{" "}
+            <a href="#" className="text-[#3DF29B] hover:underline">Privacy Policy</a> মেনে নিচ্ছেন।
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -2,69 +2,56 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { Logo, GreenDot } from "@/lib/ui";
 import {
   Video, LogOut, Search, UserPlus, Check, X, Link2,
   Phone, Users, Bell, ChevronRight, UserCheck,
   Loader2, Hash, ArrowRight, VideoIcon, PhoneCall, PhoneOff,
 } from "lucide-react";
 
-/* ─── Avatar ────────────────────────────────────────────── */
-function Avatar({ name, image, size = "md" }) {
-  const sizes = { sm: "w-8 h-8 text-xs", md: "w-10 h-10 text-sm", lg: "w-12 h-12 text-base" };
-  const initials = name ? name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : "?";
-  const colors = ["bg-indigo-600", "bg-violet-600", "bg-pink-600", "bg-sky-600", "bg-teal-600"];
-  const color = colors[(name?.charCodeAt(0) ?? 0) % colors.length];
-  if (image) return <img src={image} alt={name} className={`${sizes[size]} rounded-full object-cover shrink-0`} />;
+/* ── Avatar ─────────────────────────────────────────────── */
+function Av({ name, image, size = "md" }) {
+  const sz = { sm:"w-8 h-8 text-xs", md:"w-10 h-10 text-sm", lg:"w-12 h-12 text-base" };
+  const initials = name ? name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase() : "?";
+  const palette = ["#4F8EF7","#A855F7","#F97316","#EC4899","#3DF29B","#06B6D4"];
+  const bg = palette[(name?.charCodeAt(0)??0)%palette.length];
+  if (image) return <img src={image} alt={name} className={`${sz[size]} rounded-full object-cover shrink-0`}/>;
   return (
-    <div className={`${sizes[size]} ${color} rounded-full flex items-center justify-center font-bold text-white shrink-0`}>
-      {initials}
-    </div>
+    <div className={`${sz[size]} rounded-full flex items-center justify-center font-bold text-white shrink-0 font-sora`}
+      style={{background:bg}}>{initials}</div>
   );
 }
 
-/* ─── Card ──────────────────────────────────────────────── */
-function Card({ children, className = "" }) {
+/* ── Incoming Call Modal ─────────────────────────────────── */
+function CallModal({ call, onAccept, onDecline }) {
   return (
-    <div className={`bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 rounded-2xl ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-/* ─── Incoming Call Modal ───────────────────────────────── */
-function IncomingCallModal({ call, onAccept, onDecline }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 w-full max-w-sm text-center shadow-2xl animate-pulse-once">
-        <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto mb-4 ring-4 ring-indigo-500/40 ring-offset-4 ring-offset-slate-900 animate-[ping_1.5s_ease-in-out_infinite]">
-          {call.fromName?.[0]?.toUpperCase() ?? "?"}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:"rgba(0,0,0,.75)"}}>
+      <div className="card p-8 w-full max-w-sm text-center" style={{background:"#141B23"}}>
+        <div className="relative w-20 h-20 mx-auto mb-5">
+          <div className="absolute inset-0 rounded-full animate-ping opacity-40" style={{background:"#3DF29B"}}/>
+          <div className="relative w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white font-sora"
+            style={{background:"linear-gradient(135deg,#4F8EF7,#A855F7)"}}>
+            {call.fromName?.[0]?.toUpperCase()??"?"}
+          </div>
         </div>
-        <div className="w-20 h-20 bg-indigo-600 rounded-full flex items-center justify-center text-3xl font-bold text-white mx-auto -mt-20 mb-4 relative z-10">
-          {call.fromName?.[0]?.toUpperCase() ?? "?"}
-        </div>
-        <p className="text-slate-400 text-sm mb-1">ইনকামিং ভিডিও কল</p>
-        <p className="text-white text-xl font-bold mb-8">{call.fromName}</p>
-        <div className="flex justify-center gap-6">
-          <button
-            onClick={onDecline}
-            className="w-16 h-16 bg-red-600 hover:bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg transition-all"
-          >
-            <PhoneOff size={24} />
+        <p className="text-[#6B7E93] text-sm font-manrope mb-1">ইনকামিং ভিডিও কল</p>
+        <p className="font-sora font-bold text-[#E9EEF3] text-xl mb-8">{call.fromName}</p>
+        <div className="flex justify-center gap-5">
+          <button onClick={onDecline} className="w-16 h-16 rounded-full flex items-center justify-center text-white transition-all hover:scale-105"
+            style={{background:"#FF5C5C"}}>
+            <PhoneOff size={22}/>
           </button>
-          <button
-            onClick={onAccept}
-            className="w-16 h-16 bg-green-500 hover:bg-green-400 rounded-full flex items-center justify-center text-white shadow-lg transition-all"
-          >
-            <PhoneCall size={24} />
+          <button onClick={onAccept} className="w-16 h-16 rounded-full flex items-center justify-center text-[#0B0F14] transition-all hover:scale-105"
+            style={{background:"#3DF29B"}}>
+            <PhoneCall size={22}/>
           </button>
         </div>
-        <p className="text-slate-500 text-xs mt-5">ডিক্লাইন করুন বা কলে যোগ দিন</p>
       </div>
     </div>
   );
 }
 
-/* ─── Main Dashboard ────────────────────────────────────── */
+/* ── Main Dashboard ──────────────────────────────────────── */
 export default function Dashboard() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
@@ -73,484 +60,283 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
-
   const [friends, setFriends] = useState([]);
   const [incoming, setIncoming] = useState([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
-
   const [roomId, setRoomId] = useState("");
-  const [inviteLink, setInviteLink] = useState("");
   const [generatingLink, setGeneratingLink] = useState(false);
-  const [copied, setCopied] = useState(false);
-
   const [actionLoading, setActionLoading] = useState({});
   const [sendLoading, setSendLoading] = useState({});
   const [callLoading, setCallLoading] = useState({});
-
-  // Incoming call state
   const [incomingCall, setIncomingCall] = useState(null);
   const pollRef = useRef(null);
 
-  /* auth guard */
-  useEffect(() => {
-    if (!isPending && !session) router.push("/login");
-  }, [session, isPending, router]);
+  useEffect(() => { if (!isPending && !session) router.push("/login"); }, [session, isPending, router]);
 
-  /* load friends */
   const loadFriends = useCallback(async () => {
     setLoadingFriends(true);
-    try {
-      const res = await fetch("/api/friends");
-      const data = await res.json();
-      setFriends(data.friends ?? []);
-      setIncoming(data.incoming ?? []);
-    } finally {
-      setLoadingFriends(false);
-    }
+    try { const r = await fetch("/api/friends"); const d = await r.json(); setFriends(d.friends??[]); setIncoming(d.incoming??[]); }
+    finally { setLoadingFriends(false); }
   }, []);
 
-  useEffect(() => {
-    if (session) loadFriends();
-  }, [session, loadFriends]);
+  useEffect(() => { if (session) loadFriends(); }, [session, loadFriends]);
 
-  /* Poll for incoming calls every 4 seconds */
   useEffect(() => {
     if (!session) return;
-    const poll = async () => {
-      try {
-        const res = await fetch("/api/call");
-        const data = await res.json();
-        if (data.call) setIncomingCall(data.call);
-        else setIncomingCall(null);
-      } catch (_) {}
-    };
-    poll();
-    pollRef.current = setInterval(poll, 4000);
+    const poll = async () => { try { const r = await fetch("/api/call"); const d = await r.json(); setIncomingCall(d.call??null); } catch(_){} };
+    poll(); pollRef.current = setInterval(poll, 4000);
     return () => clearInterval(pollRef.current);
   }, [session]);
 
-  /* search users */
   useEffect(() => {
     if (!searchQuery.trim()) { setSearchResults([]); return; }
-    const timer = setTimeout(async () => {
+    const t = setTimeout(async () => {
       setSearching(true);
-      try {
-        const res = await fetch(`/api/friends?search=${encodeURIComponent(searchQuery)}`);
-        const data = await res.json();
-        setSearchResults(data.users ?? []);
-      } finally { setSearching(false); }
+      try { const r = await fetch(`/api/friends?search=${encodeURIComponent(searchQuery)}`); const d = await r.json(); setSearchResults(d.users??[]); }
+      finally { setSearching(false); }
     }, 400);
-    return () => clearTimeout(timer);
+    return () => clearTimeout(t);
   }, [searchQuery]);
 
-  /* send friend request */
-  const sendRequest = async (toUserId) => {
-    setSendLoading((p) => ({ ...p, [toUserId]: true }));
-    await fetch("/api/friends", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ toUserId }),
-    });
-    setSendLoading((p) => ({ ...p, [toUserId]: false }));
-    setSearchResults((prev) =>
-      prev.map((u) => (u.id === toUserId ? { ...u, status: "pending", direction: "sent" } : u))
-    );
+  const sendRequest = async (id) => {
+    setSendLoading(p=>({...p,[id]:true}));
+    await fetch("/api/friends",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toUserId:id})});
+    setSendLoading(p=>({...p,[id]:false}));
+    setSearchResults(p=>p.map(u=>u.id===id?{...u,status:"pending",direction:"sent"}:u));
   };
 
-  /* accept / decline friend request */
   const handleRequest = async (requestId, action) => {
-    setActionLoading((p) => ({ ...p, [requestId]: true }));
-    await fetch("/api/friends", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId, action }),
-    });
-    await loadFriends();
-    setActionLoading((p) => ({ ...p, [requestId]: false }));
+    setActionLoading(p=>({...p,[requestId]:true}));
+    await fetch("/api/friends",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({requestId,action})});
+    await loadFriends(); setActionLoading(p=>({...p,[requestId]:false}));
   };
 
-  /* generate invite link */
-  const generateLink = async () => {
+  const createMeet = async () => {
     setGeneratingLink(true);
-    const res = await fetch("/api/invite", { method: "POST" });
-    const data = await res.json();
-    setInviteLink(data.link);
-    setGeneratingLink(false);
+    const r = await fetch("/api/invite",{method:"POST"}); const d = await r.json();
+    setGeneratingLink(false); if (d.roomId) router.push(`/lobby/${d.roomId}`);
   };
 
-  /* copy invite link */
-  const copyLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const joinRoom = (id) => { const t=(id||roomId).trim(); if(t) router.push(`/lobby/${t}`); };
 
-  /* join room by ID */
-  const joinRoom = (id) => {
-    const target = (id || roomId).trim();
-    if (target) router.push(`/room/${target}`);
-  };
-
-  /* direct call a friend */
   const callFriend = async (friendId) => {
-    setCallLoading((p) => ({ ...p, [friendId]: true }));
-    try {
-      const res = await fetch("/api/call", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toUserId: friendId }),
-      });
-      const data = await res.json();
-      if (data.roomId) router.push(`/room/${data.roomId}`);
-    } finally {
-      setCallLoading((p) => ({ ...p, [friendId]: false }));
-    }
+    setCallLoading(p=>({...p,[friendId]:true}));
+    try { const r=await fetch("/api/call",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({toUserId:friendId})}); const d=await r.json(); if(d.roomId) router.push(`/lobby/${d.roomId}`); }
+    finally { setCallLoading(p=>({...p,[friendId]:false})); }
   };
 
-  /* accept incoming call */
   const acceptCall = async () => {
-    if (!incomingCall) return;
-    await fetch("/api/call", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ callId: incomingCall.id, action: "accept" }),
-    });
-    router.push(`/room/${incomingCall.roomId}`);
+    if(!incomingCall) return;
+    await fetch("/api/call",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({callId:incomingCall.id,action:"accept"})});
+    router.push(`/lobby/${incomingCall.roomId}`);
   };
 
-  /* decline incoming call */
   const declineCall = async () => {
-    if (!incomingCall) return;
-    await fetch("/api/call", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ callId: incomingCall.id, action: "decline" }),
-    });
+    if(!incomingCall) return;
+    await fetch("/api/call",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({callId:incomingCall.id,action:"decline"})});
     setIncomingCall(null);
   };
 
-  const handleLogout = async () => {
-    await authClient.signOut();
-    router.push("/login");
-  };
+  const handleLogout = async () => { await authClient.signOut(); router.push("/login"); };
 
-  const incomingCount = incoming.length;
+  const tabs = [
+    {id:"home", label:"হোম", icon:VideoIcon},
+    {id:"friends", label:"বন্ধু", icon:Users},
+    {id:"requests", label:"রিকোয়েস্ট", icon:Bell, badge:incoming.length},
+  ];
 
-  if (isPending || !session) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
-        <Loader2 size={32} className="text-indigo-400 animate-spin" />
-      </div>
-    );
-  }
+  if (isPending || !session) return (
+    <div className="min-h-screen flex items-center justify-center" style={{background:"#0B0F14"}}>
+      <Loader2 size={32} className="text-[#3DF29B] animate-spin"/>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white">
-      {/* Background glows */}
-      <div className="fixed top-0 left-0 w-[500px] h-[500px] bg-indigo-900/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-[400px] h-[400px] bg-violet-900/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen" style={{background:"#0B0F14"}}>
+      {incomingCall && <CallModal call={incomingCall} onAccept={acceptCall} onDecline={declineCall}/>}
 
-      {/* Incoming call modal */}
-      {incomingCall && (
-        <IncomingCallModal call={incomingCall} onAccept={acceptCall} onDecline={declineCall} />
-      )}
-
-      {/* ── Nav ── */}
-      <nav className="sticky top-0 z-40 border-b border-slate-800/80 bg-[#0a0a0f]/80 backdrop-blur-xl">
+      {/* Nav */}
+      <nav className="sticky top-0 z-40 glass border-b border-[#1F2D3D]">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <Video size={16} className="text-white" />
-            </div>
-            <span className="font-bold text-lg tracking-tight">CallKori</span>
-          </div>
-
-          <div className="flex items-center gap-1 bg-slate-800/60 rounded-xl p-1">
-            {[
-              { id: "home", label: "হোম", icon: VideoIcon },
-              { id: "friends", label: "বন্ধু", icon: Users },
-              { id: "requests", label: "রিকোয়েস্ট", icon: Bell, badge: incomingCount },
-            ].map(({ id, label, icon: Icon, badge }) => (
-              <button
-                key={id}
-                onClick={() => setActiveTab(id)}
-                className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === id ? "bg-indigo-600 text-white shadow-md" : "text-slate-400 hover:text-white"
-                }`}
-              >
-                <Icon size={15} />
-                <span className="hidden sm:inline">{label}</span>
-                {badge > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {badge}
-                  </span>
-                )}
+          <Logo/>
+          <div className="flex items-center gap-1 p-1 rounded-xl" style={{background:"#141B23",border:"1px solid #1F2D3D"}}>
+            {tabs.map(({id,label,icon:Icon,badge})=>(
+              <button key={id} onClick={()=>setActiveTab(id)}
+                className={`relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-sora font-semibold transition-all ${activeTab===id?"bg-[#3DF29B] text-[#0B0F14]":"text-[#6B7E93] hover:text-[#E9EEF3]"}`}>
+                <Icon size={14}/><span className="hidden sm:inline">{label}</span>
+                {badge>0&&<span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF5C5C] text-white text-[10px] font-bold rounded-full flex items-center justify-center">{badge}</span>}
               </button>
             ))}
           </div>
-
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Avatar name={session.user.name} image={session.user.image} size="sm" />
-              <span className="hidden sm:block text-sm text-slate-300 font-medium">{session.user.name}</span>
-            </div>
-            <button onClick={handleLogout} className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all" title="লগআউট">
-              <LogOut size={17} />
-            </button>
+            <Av name={session.user.name} image={session.user.image} size="sm"/>
+            <span className="hidden sm:block text-sm text-[#6B7E93] font-manrope">{session.user.name}</span>
+            <button onClick={handleLogout} className="p-2 rounded-lg text-[#6B7E93] hover:text-[#FF5C5C] transition-colors" title="লগআউট"><LogOut size={17}/></button>
           </div>
         </div>
       </nav>
 
-      {/* ── Content ── */}
-      <main className="max-w-5xl mx-auto px-4 py-8 relative z-10">
+      <main className="max-w-5xl mx-auto px-4 py-8">
 
-        {/* ══ HOME TAB ══ */}
-        {activeTab === "home" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Create / Join */}
-            <Card className="p-6 space-y-5">
+        {/* HOME TAB */}
+        {activeTab==="home" && (
+          <div className="grid md:grid-cols-2 gap-5">
+            {/* Start call card */}
+            <div className="card p-6 space-y-4" style={{background:"#141B23"}}>
               <div>
-                <h2 className="text-lg font-bold text-white">ভিডিও কল শুরু করুন</h2>
-                <p className="text-slate-400 text-sm mt-0.5">রুম আইডি দিয়ে যোগ দিন বা নতুন লিংক তৈরি করুন</p>
+                <h2 className="font-sora font-bold text-[#E9EEF3] text-lg">ভিডিও কল শুরু করুন</h2>
+                <p className="text-[#6B7E93] text-sm font-manrope mt-0.5">নতুন মিট খুলুন বা Room ID দিয়ে যোগ দিন</p>
               </div>
+              <button onClick={createMeet} disabled={generatingLink}
+                className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                {generatingLink?<Loader2 size={16} className="animate-spin"/>:<VideoIcon size={16}/>}
+                নতুন মিট শুরু করুন
+              </button>
+              <div className="flex items-center gap-3"><div className="flex-1 h-px bg-[#1F2D3D]"/><span className="text-[#6B7E93] text-xs font-manrope">অথবা</span><div className="flex-1 h-px bg-[#1F2D3D]"/></div>
               <div className="flex gap-2">
                 <div className="relative flex-1">
-                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-                  <input
-                    type="text"
-                    placeholder="রুম আইডি লিখুন..."
-                    value={roomId}
-                    onChange={(e) => setRoomId(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && joinRoom()}
-                    className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 pl-9 pr-4 py-2.5 rounded-xl focus:outline-none focus:border-indigo-500 text-sm transition-all"
-                  />
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6B7E93]" size={15}/>
+                  <input type="text" placeholder="Room ID বা লিংক..." value={roomId}
+                    onChange={e=>{const m=e.target.value.match(/\/room\/([\w-]+)/);setRoomId(m?m[1]:e.target.value);}}
+                    onKeyDown={e=>e.key==="Enter"&&joinRoom()}
+                    className="w-full pl-9 pr-4 py-2.5 rounded-xl text-sm font-manrope text-[#E9EEF3] placeholder-[#6B7E93] outline-none"
+                    style={{background:"#1A2330",border:"1px solid #1F2D3D"}}/>
                 </div>
-                <button
-                  onClick={() => joinRoom()}
-                  disabled={!roomId.trim()}
-                  className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl text-sm font-medium flex items-center gap-1.5 transition-all"
-                >
-                  যোগ দিন <ArrowRight size={15} />
+                <button onClick={()=>joinRoom()} disabled={!roomId.trim()}
+                  className="btn-ghost px-4 py-2.5 text-sm disabled:opacity-40 flex items-center gap-1">
+                  যোগ <ArrowRight size={14}/>
                 </button>
               </div>
-              <div className="relative flex items-center gap-3">
-                <div className="flex-1 h-px bg-slate-800" />
-                <span className="text-slate-500 text-xs">অথবা</span>
-                <div className="flex-1 h-px bg-slate-800" />
-              </div>
-              <button
-                onClick={generateLink}
-                disabled={generatingLink}
-                className="w-full bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 hover:border-violet-500/60 text-violet-300 font-medium py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm transition-all disabled:opacity-50"
-              >
-                {generatingLink ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
-                নতুন ইনভাইট লিংক তৈরি করুন
-              </button>
-              {inviteLink && (
-                <div className="bg-slate-800/80 border border-slate-700 rounded-xl p-3 flex items-center gap-2">
-                  <span className="flex-1 text-xs text-slate-300 truncate font-mono">{inviteLink}</span>
-                  <button
-                    onClick={copyLink}
-                    className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
-                      copied ? "bg-green-600/30 text-green-400" : "bg-slate-700 hover:bg-slate-600 text-slate-300"
-                    }`}
-                  >
-                    {copied ? <Check size={13} /> : null}
-                    {copied ? "কপি হয়েছে!" : "কপি করুন"}
-                  </button>
-                </div>
-              )}
-            </Card>
+            </div>
 
-            {/* Friends quick-call */}
-            <Card className="p-6">
+            {/* Friends quick call */}
+            <div className="card p-6" style={{background:"#141B23"}}>
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold">বন্ধুদের কল করুন</h2>
-                <button onClick={() => setActiveTab("friends")} className="text-indigo-400 text-sm hover:text-indigo-300 flex items-center gap-1 transition-colors">
-                  সব দেখুন <ChevronRight size={15} />
-                </button>
+                <h2 className="font-sora font-bold text-[#E9EEF3] text-lg">বন্ধুদের কল করুন</h2>
+                <button onClick={()=>setActiveTab("friends")} className="text-[#3DF29B] text-xs font-manrope flex items-center gap-1 hover:opacity-80">সব দেখুন<ChevronRight size={13}/></button>
               </div>
-              {loadingFriends ? (
-                <div className="flex justify-center py-8"><Loader2 size={24} className="text-indigo-400 animate-spin" /></div>
-              ) : friends.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  <Users size={36} className="mx-auto mb-2 opacity-40" />
-                  <p className="text-sm">এখনো কোনো বন্ধু নেই</p>
-                  <button onClick={() => setActiveTab("friends")} className="mt-3 text-indigo-400 text-xs hover:underline">বন্ধু খুঁজুন →</button>
+              {loadingFriends ? <div className="flex justify-center py-8"><Loader2 size={22} className="text-[#3DF29B] animate-spin"/></div>
+              : friends.length===0 ? (
+                <div className="text-center py-8">
+                  <Users size={36} className="mx-auto mb-2 text-[#1F2D3D]"/>
+                  <p className="text-[#6B7E93] text-sm font-manrope">এখনো কোনো বন্ধু নেই</p>
+                  <button onClick={()=>setActiveTab("friends")} className="mt-2 text-[#3DF29B] text-xs font-manrope hover:underline">বন্ধু খুঁজুন →</button>
                 </div>
               ) : (
-                <div className="space-y-1 max-h-72 overflow-y-auto pr-1">
-                  {friends.slice(0, 8).map((f) => (
-                    <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-800/60 group transition-all">
-                      <Avatar name={f.name} image={f.image} />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-white truncate">{f.name}</p>
-                        <p className="text-slate-500 text-xs truncate">{f.email}</p>
-                      </div>
-                      <button
-                        onClick={() => callFriend(f.id)}
-                        disabled={callLoading[f.id]}
-                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 hover:border-transparent text-indigo-400 hover:text-white text-xs font-medium rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                      >
-                        {callLoading[f.id] ? <Loader2 size={13} className="animate-spin" /> : <Phone size={13} />}
-                        কল করুন
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {friends.slice(0,7).map(f=>(
+                    <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#1A2330] group transition-all">
+                      <Av name={f.name} image={f.image}/>
+                      <div className="flex-1 min-w-0"><p className="text-[#E9EEF3] text-sm font-semibold font-manrope truncate">{f.name}</p><p className="text-[#6B7E93] text-xs font-manrope truncate">{f.email}</p></div>
+                      <button onClick={()=>callFriend(f.id)} disabled={callLoading[f.id]}
+                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sora font-semibold opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+                        style={{background:"#3DF29B15",border:"1px solid #3DF29B33",color:"#3DF29B"}}>
+                        {callLoading[f.id]?<Loader2 size={12} className="animate-spin"/>:<Phone size={12}/>} কল
                       </button>
                     </div>
                   ))}
                 </div>
               )}
-            </Card>
+            </div>
 
-            {/* Incoming requests banner */}
-            {incomingCount > 0 && (
-              <Card className="md:col-span-2 p-4 border-amber-500/30 bg-amber-500/5">
-                <button onClick={() => setActiveTab("requests")} className="w-full flex items-center gap-3 text-left">
-                  <div className="w-9 h-9 bg-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center shrink-0"><Bell size={18} /></div>
-                  <div className="flex-1">
-                    <p className="font-semibold text-white text-sm">{incomingCount}টি নতুন বন্ধুত্বের রিকোয়েস্ট</p>
-                    <p className="text-slate-400 text-xs">ট্যাপ করে দেখুন ও একসেপ্ট করুন</p>
-                  </div>
-                  <ChevronRight size={18} className="text-slate-500" />
-                </button>
-              </Card>
+            {/* Incoming friend requests banner */}
+            {incoming.length>0 && (
+              <div className="md:col-span-2 card p-4 cursor-pointer hover:border-[#F97316]/40 transition-all"
+                style={{background:"#141B23",borderColor:"#F9731633"}} onClick={()=>setActiveTab("requests")}>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{background:"#F9731615",border:"1px solid #F9731633"}}><Bell size={17} style={{color:"#F97316"}}/></div>
+                  <div className="flex-1"><p className="font-sora font-semibold text-[#E9EEF3] text-sm">{incoming.length}টি নতুন বন্ধুত্বের রিকোয়েস্ট</p><p className="text-[#6B7E93] text-xs font-manrope">ট্যাপ করে দেখুন</p></div>
+                  <ChevronRight size={17} className="text-[#6B7E93]"/>
+                </div>
+              </div>
             )}
           </div>
         )}
 
-        {/* ══ FRIENDS TAB ══ */}
-        {activeTab === "friends" && (
-          <div className="max-w-xl mx-auto space-y-5">
-            <Card className="p-4">
+        {/* FRIENDS TAB */}
+        {activeTab==="friends" && (
+          <div className="max-w-lg mx-auto space-y-4">
+            <div className="card p-4" style={{background:"#141B23"}}>
               <div className="relative">
-                {searching
-                  ? <Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-indigo-400 animate-spin" size={17} />
-                  : <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
-                }
-                <input
-                  type="text"
-                  placeholder="নাম বা ইমেইল দিয়ে বন্ধু খুঁজুন..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 pl-10 pr-4 py-3 rounded-xl focus:outline-none focus:border-indigo-500 transition-all"
-                />
+                {searching?<Loader2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#3DF29B] animate-spin" size={16}/>
+                :<Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#6B7E93]" size={16}/>}
+                <input type="text" placeholder="নাম বা ইমেইল দিয়ে খুঁজুন..." value={searchQuery} onChange={e=>setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl text-sm font-manrope text-[#E9EEF3] placeholder-[#6B7E93] outline-none"
+                  style={{background:"#1A2330",border:"1px solid #1F2D3D"}}/>
               </div>
-              {searchResults.length > 0 && (
+              {searchResults.length>0 && (
                 <div className="mt-3 space-y-1">
-                  {searchResults.map((u) => (
-                    <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-800/60 transition-all">
-                      <Avatar name={u.name} image={u.image} />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-white truncate">{u.name}</p>
-                        <p className="text-slate-500 text-xs truncate">{u.email}</p>
-                      </div>
-                      {u.status === "accepted" ? (
-                        <span className="text-xs text-green-400 flex items-center gap-1 bg-green-500/10 px-2.5 py-1 rounded-lg"><UserCheck size={13} /> বন্ধু</span>
-                      ) : u.status === "pending" && u.direction === "sent" ? (
-                        <span className="text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg">পাঠানো হয়েছে</span>
-                      ) : u.status === "pending" && u.direction === "received" ? (
-                        <span className="text-xs text-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-lg">রিকোয়েস্ট আছে</span>
-                      ) : (
-                        <button
-                          onClick={() => sendRequest(u.id)}
-                          disabled={sendLoading[u.id]}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 hover:border-transparent text-indigo-400 hover:text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50"
-                        >
-                          {sendLoading[u.id] ? <Loader2 size={12} className="animate-spin" /> : <UserPlus size={13} />}
-                          যোগ করুন
-                        </button>
-                      )}
+                  {searchResults.map(u=>(
+                    <div key={u.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#1A2330] transition-all">
+                      <Av name={u.name} image={u.image}/>
+                      <div className="flex-1 min-w-0"><p className="text-[#E9EEF3] text-sm font-semibold font-manrope truncate">{u.name}</p><p className="text-[#6B7E93] text-xs font-manrope truncate">{u.email}</p></div>
+                      {u.status==="accepted"?<span className="text-xs font-sora font-bold px-2.5 py-1 rounded-lg flex items-center gap-1" style={{background:"#3DF29B15",color:"#3DF29B"}}><UserCheck size={12}/>বন্ধু</span>
+                      :u.status==="pending"&&u.direction==="sent"?<span className="text-xs font-manrope px-2.5 py-1 rounded-lg" style={{background:"#F9731615",color:"#F97316"}}>পাঠানো হয়েছে</span>
+                      :u.status==="pending"&&u.direction==="received"?<span className="text-xs font-manrope px-2.5 py-1 rounded-lg" style={{background:"#4F8EF715",color:"#4F8EF7"}}>রিকোয়েস্ট আছে</span>
+                      :<button onClick={()=>sendRequest(u.id)} disabled={sendLoading[u.id]}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sora font-semibold transition-all disabled:opacity-50"
+                        style={{background:"#3DF29B15",border:"1px solid #3DF29B33",color:"#3DF29B"}}>
+                        {sendLoading[u.id]?<Loader2 size={11} className="animate-spin"/>:<UserPlus size={12}/>}যোগ
+                      </button>}
                     </div>
                   ))}
                 </div>
               )}
-            </Card>
-
-            <Card className="p-5">
-              <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
-                <Users size={17} className="text-indigo-400" /> আমার বন্ধুরা
-                <span className="ml-auto text-xs bg-slate-800 px-2 py-0.5 rounded-full text-slate-400">{friends.length}</span>
-              </h3>
-              {loadingFriends ? (
-                <div className="flex justify-center py-8"><Loader2 size={24} className="text-indigo-400 animate-spin" /></div>
-              ) : friends.length === 0 ? (
-                <div className="text-center py-10 text-slate-500">
-                  <Users size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">বন্ধু তালিকা ফাঁকা</p>
+            </div>
+            <div className="card p-5" style={{background:"#141B23"}}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-sora font-bold text-[#E9EEF3] flex items-center gap-2"><Users size={16} className="text-[#3DF29B]"/>আমার বন্ধুরা</h3>
+                <span className="text-xs font-manrope px-2 py-0.5 rounded-full" style={{background:"#1A2330",color:"#6B7E93"}}>{friends.length}</span>
+              </div>
+              {loadingFriends?<div className="flex justify-center py-8"><Loader2 size={22} className="text-[#3DF29B] animate-spin"/></div>
+              :friends.length===0?<div className="text-center py-10"><Users size={36} className="mx-auto mb-2 text-[#1F2D3D]"/><p className="text-[#6B7E93] text-sm font-manrope">বন্ধু তালিকা ফাঁকা</p></div>
+              :<div className="space-y-1">{friends.map(f=>(
+                <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#1A2330] group transition-all">
+                  <Av name={f.name} image={f.image}/>
+                  <div className="flex-1 min-w-0"><p className="text-[#E9EEF3] text-sm font-semibold font-manrope truncate">{f.name}</p><p className="text-[#6B7E93] text-xs font-manrope truncate">{f.email}</p></div>
+                  <button onClick={()=>callFriend(f.id)} disabled={callLoading[f.id]}
+                    className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sora font-semibold opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+                    style={{background:"#3DF29B15",border:"1px solid #3DF29B33",color:"#3DF29B"}}>
+                    {callLoading[f.id]?<Loader2 size={12} className="animate-spin"/>:<Phone size={12}/>}কল করুন
+                  </button>
                 </div>
-              ) : (
-                <div className="space-y-1">
-                  {friends.map((f) => (
-                    <div key={f.id} className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-800/60 group transition-all">
-                      <Avatar name={f.name} image={f.image} />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-white truncate">{f.name}</p>
-                        <p className="text-slate-500 text-xs truncate">{f.email}</p>
-                      </div>
-                      <button
-                        onClick={() => callFriend(f.id)}
-                        disabled={callLoading[f.id]}
-                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 hover:border-transparent text-indigo-400 hover:text-white text-xs font-medium rounded-lg transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                      >
-                        {callLoading[f.id] ? <Loader2 size={13} className="animate-spin" /> : <Phone size={13} />}
-                        কল করুন
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
+              ))}</div>}
+            </div>
           </div>
         )}
 
-        {/* ══ REQUESTS TAB ══ */}
-        {activeTab === "requests" && (
-          <div className="max-w-xl mx-auto">
-            <Card className="p-5">
-              <h3 className="font-semibold text-white mb-5 flex items-center gap-2">
-                <Bell size={17} className="text-amber-400" /> আসা রিকোয়েস্টগুলো
-                {incomingCount > 0 && (
-                  <span className="ml-auto text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">{incomingCount}টি নতুন</span>
-                )}
-              </h3>
-              {loadingFriends ? (
-                <div className="flex justify-center py-10"><Loader2 size={24} className="text-indigo-400 animate-spin" /></div>
-              ) : incoming.length === 0 ? (
-                <div className="text-center py-12 text-slate-500">
-                  <Bell size={40} className="mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">কোনো পেন্ডিং রিকোয়েস্ট নেই</p>
+        {/* REQUESTS TAB */}
+        {activeTab==="requests" && (
+          <div className="max-w-lg mx-auto">
+            <div className="card p-5" style={{background:"#141B23"}}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-sora font-bold text-[#E9EEF3] flex items-center gap-2"><Bell size={16} style={{color:"#F97316"}}/>আসা রিকোয়েস্ট</h3>
+                {incoming.length>0&&<span className="text-xs font-sora font-bold px-2 py-0.5 rounded-full" style={{background:"#F9731620",color:"#F97316"}}>{incoming.length}টি</span>}
+              </div>
+              {loadingFriends?<div className="flex justify-center py-10"><Loader2 size={22} className="text-[#3DF29B] animate-spin"/></div>
+              :incoming.length===0?<div className="text-center py-12"><Bell size={36} className="mx-auto mb-2 text-[#1F2D3D]"/><p className="text-[#6B7E93] text-sm font-manrope">কোনো পেন্ডিং রিকোয়েস্ট নেই</p></div>
+              :<div className="space-y-3">{incoming.map(r=>(
+                <div key={r.requestId} className="flex items-center gap-3 p-3 rounded-xl" style={{background:"#1A2330",border:"1px solid #1F2D3D"}}>
+                  <Av name={r.name} image={r.image} size="lg"/>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-sora font-semibold text-[#E9EEF3] text-sm">{r.name}</p>
+                    <p className="text-[#6B7E93] text-xs font-manrope truncate">{r.email}</p>
+                  </div>
+                  <div className="flex flex-col gap-2 shrink-0">
+                    <button onClick={()=>handleRequest(r.requestId,"accept")} disabled={actionLoading[r.requestId]}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-sora font-bold transition-all disabled:opacity-50"
+                      style={{background:"#3DF29B20",border:"1px solid #3DF29B44",color:"#3DF29B"}}>
+                      {actionLoading[r.requestId]?<Loader2 size={11} className="animate-spin"/>:<Check size={12}/>}একসেপ্ট
+                    </button>
+                    <button onClick={()=>handleRequest(r.requestId,"decline")} disabled={actionLoading[r.requestId]}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-sora font-bold transition-all disabled:opacity-50"
+                      style={{background:"#FF5C5C15",border:"1px solid #FF5C5C33",color:"#FF5C5C"}}>
+                      <X size={12}/>ডিক্লাইন
+                    </button>
+                  </div>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  {incoming.map((r) => (
-                    <div key={r.requestId} className="flex items-center gap-3 p-3 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                      <Avatar name={r.name} image={r.image} size="lg" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-white text-sm">{r.name}</p>
-                        <p className="text-slate-500 text-xs truncate">{r.email}</p>
-                        <p className="text-slate-600 text-xs mt-0.5">বন্ধুত্বের অনুরোধ পাঠিয়েছেন</p>
-                      </div>
-                      <div className="flex flex-col gap-2 shrink-0">
-                        <button
-                          onClick={() => handleRequest(r.requestId, "accept")}
-                          disabled={actionLoading[r.requestId]}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600/20 hover:bg-green-600 border border-green-500/30 hover:border-transparent text-green-400 hover:text-white text-xs font-medium rounded-lg transition-all disabled:opacity-50"
-                        >
-                          {actionLoading[r.requestId] ? <Loader2 size={12} className="animate-spin" /> : <Check size={13} />}
-                          একসেপ্ট
-                        </button>
-                        <button
-                          onClick={() => handleRequest(r.requestId, "decline")}
-                          disabled={actionLoading[r.requestId]}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/10 hover:bg-red-600/30 border border-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-all disabled:opacity-50"
-                        >
-                          <X size={13} /> ডিক্লাইন
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
+              ))}</div>}
+            </div>
           </div>
         )}
       </main>
