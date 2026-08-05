@@ -20,11 +20,29 @@ const initials  = (name) =>
   name ? name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase() : "?";
 
 /* ─── Local video tile ───────────────────────────────── */
-function LocalTile({ videoElRef, screenElRef, camOn, micOn, status, displayName,
+function LocalTile({ videoTrack, screenTrack, camOn, micOn, status, displayName,
   pinned, onPin, screenSharing }) {
 
-  // camera video — always rendered, hidden behind screen share when sharing
-  const showScreen = screenSharing && screenElRef;
+  const camRef    = useRef(null);
+  const screenRef = useRef(null);
+
+  // Re-play camera track whenever DOM node mounts or track changes
+  useEffect(() => {
+    const el    = camRef.current;
+    const track = videoTrack;
+    if (!el || !track) return;
+    try { track.play(el); } catch (_) {}
+  }, [videoTrack, camRef.current]); // eslint-disable-line
+
+  // Re-play screen track whenever DOM node mounts or track changes
+  useEffect(() => {
+    const el    = screenRef.current;
+    const track = screenTrack;
+    if (!el || !track) return;
+    try { track.play(el); } catch (_) {}
+  }, [screenTrack, screenRef.current]); // eslint-disable-line
+
+  const showScreen = screenSharing && screenTrack;
 
   return (
     <div
@@ -34,37 +52,37 @@ function LocalTile({ videoElRef, screenElRef, camOn, micOn, status, displayName,
         ${pinned ? "ring-2 ring-[#4F8EF7]" : ""}`}
       style={{ background:"#0D1117", border:"1px solid #1F2D3D" }}>
 
-      {/* camera video — always in DOM, z-index switches */}
-      <div ref={videoElRef}
+      {/* camera video — always in DOM */}
+      <div ref={camRef}
         className="absolute inset-0 w-full h-full"
         style={{ zIndex: showScreen ? 0 : 1 }} />
 
-      {/* screen share local preview — on top when sharing */}
+      {/* screen share preview */}
       {screenSharing && (
-        <div ref={screenElRef}
+        <div ref={screenRef}
           className="screen-tile absolute inset-0 w-full h-full"
           style={{ zIndex: 2 }} />
       )}
 
-      {/* avatar when cam off & not screen sharing */}
+      {/* avatar when cam off */}
       {(!camOn || status !== "connected") && !showScreen && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2"
           style={{ background:"#0D1117", zIndex:3 }}>
           <div className="w-14 h-14 rounded-full flex items-center justify-center
-            text-xl font-bold text-white font-sora"
+            text-xl font-bold text-white"
             style={{ background: avatarBg(displayName) }}>
             {initials(displayName)}
           </div>
-          <p className="text-[#6B7E93] text-xs font-manrope">{displayName}</p>
+          <p style={{ color:"#6B7E93", fontSize:"12px" }}>{displayName}</p>
         </div>
       )}
 
       {/* connecting overlay */}
       {status === "connecting" && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
+        <div className="absolute inset-0 flex flex-col items-center justify-center"
           style={{ background:"rgba(11,15,20,.9)", zIndex:10 }}>
           <Loader2 size={24} className="text-[#3DF29B] animate-spin mb-1" />
-          <p className="text-[#6B7E93] text-xs font-manrope">Connecting...</p>
+          <p style={{ color:"#6B7E93", fontSize:"12px" }}>Connecting...</p>
         </div>
       )}
 
@@ -72,12 +90,13 @@ function LocalTile({ videoElRef, screenElRef, camOn, micOn, status, displayName,
       <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 flex items-center gap-1.5"
         style={{ background:"linear-gradient(to top,rgba(11,15,20,.9),transparent)", zIndex:10 }}>
         <GreenDot />
-        <span className="text-[#E9EEF3] text-xs font-manrope truncate">
+        <span style={{ color:"#E9EEF3", fontSize:"11px" }} className="truncate">
           You · {displayName}
         </span>
         {screenSharing && (
-          <span className="text-[#3DF29B] text-[10px] font-bold ml-1
-            bg-[#3DF29B15] px-1 rounded">● SCREEN</span>
+          <span style={{ color:"#3DF29B", fontSize:"10px", fontWeight:"bold",
+            background:"rgba(61,242,155,.1)", padding:"0 4px", borderRadius:"4px",
+            marginLeft:"4px" }}>● SCREEN</span>
         )}
       </div>
 
@@ -88,7 +107,7 @@ function LocalTile({ videoElRef, screenElRef, camOn, micOn, status, displayName,
         </div>
       )}
 
-      <button onClick={e=>{e.stopPropagation();onPin();}}
+      <button onClick={e => { e.stopPropagation(); onPin(); }}
         className="absolute top-2 left-2 w-6 h-6 rounded-lg items-center
           justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex"
         style={{ background:"rgba(20,27,35,.8)", zIndex:10 }}>
@@ -233,11 +252,13 @@ export default function RoomPage() {
   const [chatOpen,     setChatOpen]     = useState(false);
   const [panelOpen,    setPanelOpen]    = useState(false);
 
+  const [localVideoTrack,  setLocalVideoTrack]  = useState(null);
+  const [localScreenTrack, setLocalScreenTrack] = useState(null);
+
   const clientRef       = useRef(null);
   const localAudioRef   = useRef(null);
   const localVideoRef   = useRef(null);
-  const localVideoElRef = useRef(null);
-  const localScreenElRef= useRef(null); // local screen share preview
+  const localScreenElRef= useRef(null);
   const screenClientRef = useRef(null);
   const screenTrackRef  = useRef(null);
   const initializedRef  = useRef(false);
@@ -309,7 +330,8 @@ export default function RoomPage() {
       localVideoRef.current = videoTrack;
       if (audioTrack && !micOn)  audioTrack.setEnabled(false);
       if (videoTrack && !camOn)  videoTrack.setEnabled(false);
-      if (videoTrack && localVideoElRef.current) videoTrack.play(localVideoElRef.current);
+      // Don't call play() here — LocalTile handles it via useEffect
+      setLocalVideoTrack(videoTrack ?? null);
 
       const toPublish = [audioTrack, videoTrack].filter(Boolean);
       if (toPublish.length) await client.publish(toPublish);
@@ -363,6 +385,7 @@ export default function RoomPage() {
       screenTrackRef.current = null;
       await screenClientRef.current?.leave().catch(()=>{});
       screenClientRef.current = null;
+      setLocalScreenTrack(null);
       setScreenSharing(false);
       return;
     }
@@ -388,12 +411,14 @@ export default function RoomPage() {
       await sc.publish(track);
       // play screen locally so sharer can see their own screen
       if (localScreenElRef.current) track.play(localScreenElRef.current);
+      setLocalScreenTrack(track);
       setScreenSharing(true);
       track.on("track-ended", () => {
         track.close();
         sc.leave().catch(()=>{});
         screenClientRef.current = null;
         screenTrackRef.current  = null;
+        setLocalScreenTrack(null);
         setScreenSharing(false);
       });
     } catch (err) {
@@ -521,11 +546,11 @@ export default function RoomPage() {
             <div className="flex-1 min-w-0">
               {localPinned ? (
                 <LocalTile
-                  videoElRef={localVideoElRef}
-                  screenElRef={localScreenElRef}
+                  videoTrack={localVideoTrack}
+                  screenTrack={localScreenTrack}
                   camOn={camOn} micOn={micOn} status={status}
                   displayName={displayName} screenSharing={screenSharing}
-                  pinned onPin={()=>setPinnedUid(null)}
+                  pinned onPin={() => setPinnedUid(null)}
                 />
               ) : pinnedRemote ? (
                 <RemoteTile
@@ -543,11 +568,11 @@ export default function RoomPage() {
               {!localPinned && (
                 <div style={{ height:"90px" }}>
                   <LocalTile
-                    videoElRef={localVideoElRef}
-                    screenElRef={localScreenElRef}
+                    videoTrack={localVideoTrack}
+                    screenTrack={localScreenTrack}
                     camOn={camOn} micOn={micOn} status={status}
                     displayName={displayName} screenSharing={screenSharing}
-                    pinned={false} onPin={()=>setPinnedUid("local")}
+                    pinned={false} onPin={() => setPinnedUid("local")}
                   />
                 </div>
               )}
@@ -569,11 +594,11 @@ export default function RoomPage() {
                 "grid-cols-2 sm:grid-cols-3"}`}
               style={{ gridAutoRows: total <= 2 ? "1fr" : "minmax(130px,1fr)" }}>
               <LocalTile
-                videoElRef={localVideoElRef}
-                screenElRef={localScreenElRef}
+                videoTrack={localVideoTrack}
+                screenTrack={localScreenTrack}
                 camOn={camOn} micOn={micOn} status={status}
                 displayName={displayName} screenSharing={screenSharing}
-                pinned={false} onPin={()=>setPinnedUid("local")}
+                pinned={false} onPin={() => setPinnedUid("local")}
               />
               {visible.map(u => (
                 <RemoteTile key={u.uid} user={u} pinned={false} onPin={()=>setPinnedUid(u.uid)} />
