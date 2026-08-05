@@ -20,8 +20,12 @@ const initials  = (name) =>
   name ? name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase() : "?";
 
 /* ─── Local video tile ───────────────────────────────── */
-function LocalTile({ videoElRef, camOn, micOn, status, displayName,
+function LocalTile({ videoElRef, screenElRef, camOn, micOn, status, displayName,
   pinned, onPin, screenSharing }) {
+
+  // which video to show: screen share takes priority when active
+  const showScreen = screenSharing && screenElRef;
+
   return (
     <div
       onClick={onPin}
@@ -30,10 +34,19 @@ function LocalTile({ videoElRef, camOn, micOn, status, displayName,
         ${pinned ? "ring-2 ring-[#4F8EF7]" : ""}`}
       style={{ background:"#0D1117", border:"1px solid #1F2D3D" }}>
 
-      <div ref={videoElRef} className="absolute inset-0 w-full h-full" />
+      {/* camera video */}
+      <div ref={videoElRef}
+        className="absolute inset-0 w-full h-full"
+        style={{ display: showScreen ? "none" : "block" }} />
 
-      {/* avatar when cam off */}
-      {(!camOn || status !== "connected") && (
+      {/* screen share local preview */}
+      {screenSharing && (
+        <div ref={screenElRef}
+          className="absolute inset-0 w-full h-full" />
+      )}
+
+      {/* avatar when cam off & not screen sharing */}
+      {(!camOn || status !== "connected") && !showScreen && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2"
           style={{ background:"#0D1117", zIndex:1 }}>
           <div className="w-14 h-14 rounded-full flex items-center justify-center
@@ -45,7 +58,7 @@ function LocalTile({ videoElRef, camOn, micOn, status, displayName,
         </div>
       )}
 
-      {/* connecting */}
+      {/* connecting overlay */}
       {status === "connecting" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
           style={{ background:"rgba(11,15,20,.9)" }}>
@@ -223,6 +236,7 @@ export default function RoomPage() {
   const localAudioRef   = useRef(null);
   const localVideoRef   = useRef(null);
   const localVideoElRef = useRef(null);
+  const localScreenElRef= useRef(null); // local screen share preview
   const screenClientRef = useRef(null);
   const screenTrackRef  = useRef(null);
   const initializedRef  = useRef(false);
@@ -362,6 +376,8 @@ export default function RoomPage() {
       const track = Array.isArray(raw) ? raw[0] : raw;
       screenTrackRef.current = track;
       await sc.publish(track);
+      // play screen locally so sharer can see their own screen
+      if (localScreenElRef.current) track.play(localScreenElRef.current);
       setScreenSharing(true);
       track.on("track-ended", () => {
         track.close();
@@ -496,6 +512,7 @@ export default function RoomPage() {
               {localPinned ? (
                 <LocalTile
                   videoElRef={localVideoElRef}
+                  screenElRef={localScreenElRef}
                   camOn={camOn} micOn={micOn} status={status}
                   displayName={displayName} screenSharing={screenSharing}
                   pinned onPin={()=>setPinnedUid(null)}
@@ -509,14 +526,15 @@ export default function RoomPage() {
               ) : null}
             </div>
 
-            {/* sidebar strip */}
-            <div className="flex flex-col gap-2 overflow-y-auto shrink-0"
+            {/* sidebar strip — hidden on mobile */}
+            <div className="hidden sm:flex flex-col gap-2 overflow-y-auto shrink-0"
               style={{ width:"140px" }}>
               {/* local in sidebar when a remote is pinned */}
               {!localPinned && (
                 <div style={{ height:"90px" }}>
                   <LocalTile
                     videoElRef={localVideoElRef}
+                    screenElRef={localScreenElRef}
                     camOn={camOn} micOn={micOn} status={status}
                     displayName={displayName} screenSharing={screenSharing}
                     pinned={false} onPin={()=>setPinnedUid("local")}
@@ -532,17 +550,25 @@ export default function RoomPage() {
           </div>
 
         ) : (
-          /* ─── GRID layout ─── */
-          <div className={`flex-1 grid ${gridCols} gap-2 overflow-hidden`}>
-            <LocalTile
-              videoElRef={localVideoElRef}
-              camOn={camOn} micOn={micOn} status={status}
-              displayName={displayName} screenSharing={screenSharing}
-              pinned={false} onPin={()=>setPinnedUid("local")}
-            />
-            {visible.map(u => (
-              <RemoteTile key={u.uid} user={u} pinned={false} onPin={()=>setPinnedUid(u.uid)} />
-            ))}
+          /* ─── GRID layout — mobile: single column, desktop: multi ─── */
+          <div className={`flex-1 overflow-y-auto`}>
+            <div className={`grid gap-2 h-full
+              ${total === 1 ? "grid-cols-1" :
+                total === 2 ? "grid-cols-1 sm:grid-cols-2" :
+                total <= 4  ? "grid-cols-2" :
+                "grid-cols-2 sm:grid-cols-3"}`}
+              style={{ gridAutoRows: total <= 2 ? "1fr" : "minmax(130px,1fr)" }}>
+              <LocalTile
+                videoElRef={localVideoElRef}
+                screenElRef={localScreenElRef}
+                camOn={camOn} micOn={micOn} status={status}
+                displayName={displayName} screenSharing={screenSharing}
+                pinned={false} onPin={()=>setPinnedUid("local")}
+              />
+              {visible.map(u => (
+                <RemoteTile key={u.uid} user={u} pinned={false} onPin={()=>setPinnedUid(u.uid)} />
+              ))}
+            </div>
           </div>
         )}
 
@@ -598,25 +624,26 @@ export default function RoomPage() {
       </div>
 
       {/* control bar */}
-      <div className="shrink-0 pb-3 px-4 pt-2 z-20">
-        <div className="max-w-lg mx-auto rounded-2xl px-5 py-3 flex items-end
-          justify-center gap-3 sm:gap-5 flex-wrap shadow-2xl"
+      <div className="shrink-0 pb-safe px-4 pt-2 z-20"
+        style={{ paddingBottom: "max(12px, env(safe-area-inset-bottom))" }}>
+        <div className="max-w-lg mx-auto rounded-2xl px-4 py-2.5 flex items-end
+          justify-center gap-2 sm:gap-4 shadow-2xl"
           style={{ background:"rgba(20,27,35,.97)", backdropFilter:"blur(20px)",
             border:"1px solid #1F2D3D" }}>
           <CtrlBtn onClick={toggleMic} active={micOn} icon={Mic} offIcon={MicOff}
-            label={micOn?"মাইক বন্ধ":"মাইক চালু"} />
+            label={micOn?"মাইক":"মাইক"} />
           <CtrlBtn onClick={toggleCam} active={camOn} icon={VideoIcon} offIcon={VideoOff}
-            label={camOn?"ক্যামেরা বন্ধ":"ক্যামেরা চালু"} />
+            label={camOn?"ক্যামেরা":"ক্যামেরা"} />
           <CtrlBtn onClick={toggleNC} active={noiseCancel} icon={Wand2}
-            label={noiseCancel?"NC চালু":"NC বন্ধ"} />
+            label="NC" />
           <CtrlBtn onClick={toggleScreenShare} active={!screenSharing}
             icon={Monitor} offIcon={MonitorOff}
-            label={screenSharing?"শেয়ার বন্ধ":"স্ক্রিন"} />
+            label={screenSharing?"বন্ধ":"স্ক্রিন"} />
           <CtrlBtn onClick={()=>{ setPanelOpen(v=>!v); setChatOpen(false); }}
             active={!panelOpen} icon={Users} label={`${total} জন`} />
           <CtrlBtn onClick={()=>{ setChatOpen(v=>!v); setPanelOpen(false); }}
             active={!chatOpen} icon={MessageSquare} label="চ্যাট" />
-          <CtrlBtn onClick={leaveCall} danger active icon={PhoneOff} label="ছেড়ে দিন" />
+          <CtrlBtn onClick={leaveCall} danger active icon={PhoneOff} label="ছেড়ে" />
         </div>
       </div>
     </div>
