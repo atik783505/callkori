@@ -2,22 +2,32 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
-import { Menu, X, LayoutDashboard, LogOut } from "lucide-react";
-import { Logo } from "@/lib/ui";
+import { Menu, X, Sun, Moon, LayoutDashboard, LogOut } from "lucide-react";
+import { useTheme } from "@/lib/theme";
+import { useI18n } from "@/lib/i18n";
 import { authClient } from "@/lib/auth-client";
 
-const links = [
-  { href: "/features", label: "Features" },
-  { href: "/pricing", label: "Pricing" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+const NAV_LINKS = [
+  { key: "nav_home" as const, href: "/" },
+  { key: "nav_features" as const, href: "/features" },
+  { key: "nav_pricing" as const, href: "/pricing" },
+  { key: "nav_about" as const, href: "/about" },
 ];
 
 export default function Navbar() {
   const path = usePathname();
   const router = useRouter();
-  const [open, setOpen] = useState(false);
+  const { theme, toggle } = useTheme();
+  const { lang, setLang, t } = useI18n();
   const { data: session, isPending } = authClient.useSession();
+  const [open, setOpen] = useState(false);
+
+  const pal = ["#4F8EF7","#A855F7","#F97316","#EC4899","#34D399"];
+  const avatarBg = session?.user?.name
+    ? pal[session.user.name.charCodeAt(0) % pal.length] : "#6366F1";
+  const initials = session?.user?.name
+    ? session.user.name.split(" ").map((n: string) => n[0]).join("").slice(0,2).toUpperCase()
+    : "?";
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -25,115 +35,129 @@ export default function Navbar() {
     router.refresh();
   };
 
-  const palette = ["#4F8EF7","#A855F7","#F97316","#EC4899","#3DF29B","#06B6D4"];
-  const avatarBg = session?.user?.name
-    ? palette[session.user.name.charCodeAt(0) % palette.length]
-    : "#4F8EF7";
-  const initials = session?.user?.name
-    ? session.user.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-    : "?";
-
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-[#1F2D3D]">
-      <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
-        <Link href="/"><Logo /></Link>
+    <nav className="ck-nav fixed top-0 left-0 right-0 z-50">
+      <div className="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-4">
 
-        {/* Desktop nav links */}
-        <div className="hidden md:flex items-center gap-7">
-          {links.map(l => (
+        {/* Logo */}
+        <Link href="/" className="shrink-0">
+          <span className="font-black text-lg tracking-tight" style={{ color: "var(--text)" }}>
+            callkori
+          </span>
+        </Link>
+
+        {/* Floating center nav — desktop */}
+        <div className="hidden md:flex items-center gap-1 px-2 py-1 rounded-full ck-pill">
+          {NAV_LINKS.map(l => (
             <Link key={l.href} href={l.href}
-              className={`text-sm font-semibold transition-colors font-manrope ${
-                path === l.href ? "text-[#3DF29B]" : "text-[#6B7E93] hover:text-[#E9EEF3]"
-              }`}>
-              {l.label}
+              className="px-3.5 py-1.5 rounded-full text-sm font-medium transition-all"
+              style={{
+                color: path === l.href ? "var(--accent)" : "var(--muted2)",
+                background: path === l.href ? "var(--glow-a)" : "transparent",
+              }}>
+              {t(l.key)}
             </Link>
           ))}
         </div>
 
-        {/* Desktop auth buttons */}
+        {/* Right controls */}
         <div className="hidden md:flex items-center gap-3">
+          {/* Lang toggle */}
+          <button onClick={() => setLang(lang === "en" ? "bn" : "en")}
+            className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all"
+            style={{ background:"var(--pill-bg)", border:"1px solid var(--border)",
+              color:"var(--muted2)" }}>
+            {lang === "en" ? "বাং" : "EN"}
+          </button>
+
+          {/* Theme toggle */}
+          <button onClick={toggle}
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all"
+            style={{ background:"var(--pill-bg)", border:"1px solid var(--border)",
+              color:"var(--muted2)" }}>
+            {theme === "dark" ? <Sun size={15}/> : <Moon size={15}/>}
+          </button>
+
           {isPending ? (
-            <div className="w-8 h-8 rounded-full bg-[#1F2D3D] animate-pulse" />
+            <div className="w-8 h-8 rounded-full animate-pulse" style={{background:"var(--border)"}}/>
           ) : session ? (
-            /* Logged in */
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 pl-2" style={{borderLeft:"1px solid var(--border)"}}>
               <Link href="/dashboard"
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-sora font-semibold transition-all"
-                style={{ background: "#141B23", border: "1px solid #1F2D3D", color: "#E9EEF3" }}>
-                <LayoutDashboard size={15} className="text-[#3DF29B]" />
-                ড্যাশবোর্ড
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+                style={{background:"var(--pill-bg)",border:"1px solid var(--border)",color:"var(--text)"}}>
+                <LayoutDashboard size={14} style={{color:"var(--accent)"}}/>
+                {t("nav_dashboard")}
               </Link>
-              <div className="flex items-center gap-2 pl-2 border-l border-[#1F2D3D]">
-                {session.user.image ? (
-                  <img src={session.user.image} alt={session.user.name}
-                    className="w-8 h-8 rounded-full object-cover" />
-                ) : (
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white font-sora"
-                    style={{ background: avatarBg }}>
-                    {initials}
-                  </div>
-                )}
-                <span className="text-sm text-[#E9EEF3] font-manrope max-w-[100px] truncate">
-                  {session.user.name}
-                </span>
-                <button onClick={handleLogout} title="লগআউট"
-                  className="p-1.5 rounded-lg text-[#6B7E93] hover:text-[#FF5C5C] hover:bg-[#FF5C5C10] transition-all">
-                  <LogOut size={15} />
-                </button>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold cursor-pointer"
+                style={{background:avatarBg}} onClick={handleLogout} title="Log out">
+                {initials}
               </div>
             </div>
           ) : (
-            /* Not logged in */
             <>
-              <Link href="/login" className="btn-ghost px-4 py-2 text-sm">লগইন</Link>
-              <Link href="/login" className="btn-primary px-4 py-2 text-sm">শুরু করুন →</Link>
+              <Link href="/login"
+                className="text-sm font-medium transition-colors"
+                style={{color:"var(--muted2)"}}>
+                {t("nav_login")}
+              </Link>
+              <Link href="/login"
+                className="btn-primary px-4 py-2 text-sm">
+                {t("nav_start")}
+              </Link>
             </>
           )}
         </div>
 
         {/* Mobile menu button */}
-        <button className="md:hidden text-[#6B7E93]" onClick={() => setOpen(v => !v)}>
-          {open ? <X size={22} /> : <Menu size={22} />}
+        <button className="md:hidden" onClick={() => setOpen(v=>!v)}
+          style={{color:"var(--muted)"}}>
+          {open ? <X size={22}/> : <Menu size={22}/>}
         </button>
       </div>
 
       {/* Mobile dropdown */}
       {open && (
-        <div className="md:hidden glass border-t border-[#1F2D3D] px-5 py-4 space-y-3">
-          {links.map(l => (
-            <Link key={l.href} href={l.href} onClick={() => setOpen(false)}
-              className="block text-sm font-semibold text-[#6B7E93] hover:text-[#E9EEF3] py-1 font-manrope">
-              {l.label}
+        <div className="md:hidden px-5 py-4 space-y-3 border-t"
+          style={{background:"var(--nav-bg)",borderColor:"var(--border)"}}>
+          {NAV_LINKS.map(l => (
+            <Link key={l.href} href={l.href} onClick={()=>setOpen(false)}
+              className="block text-sm font-medium py-1 transition-colors"
+              style={{color: path===l.href?"var(--accent)":"var(--muted2)"}}>
+              {t(l.key)}
             </Link>
           ))}
-          <div className="border-t border-[#1F2D3D] pt-3 flex flex-col gap-2">
-            {session ? (
-              <>
-                <div className="flex items-center gap-3 py-1">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white font-sora shrink-0"
-                    style={{ background: avatarBg }}>
-                    {initials}
-                  </div>
-                  <span className="text-sm text-[#E9EEF3] font-manrope truncate">{session.user.name}</span>
-                </div>
-                <Link href="/dashboard" onClick={() => setOpen(false)}
-                  className="btn-primary px-4 py-2 text-sm text-center">
-                  ড্যাশবোর্ড
-                </Link>
-                <button onClick={() => { handleLogout(); setOpen(false); }}
-                  className="btn-ghost px-4 py-2 text-sm flex items-center justify-center gap-2 text-[#FF5C5C]">
-                  <LogOut size={14} /> লগআউট
-                </button>
-              </>
-            ) : (
-              <div className="flex gap-3">
-                <Link href="/login" className="btn-ghost px-4 py-2 text-sm flex-1 text-center"
-                  onClick={() => setOpen(false)}>লগইন</Link>
-                <Link href="/login" className="btn-primary px-4 py-2 text-sm flex-1 text-center"
-                  onClick={() => setOpen(false)}>শুরু করুন</Link>
-              </div>
-            )}
+          <div className="flex gap-2 pt-2 border-t" style={{borderColor:"var(--border)"}}>
+            <button onClick={()=>setLang(lang==="en"?"bn":"en")}
+              className="flex-1 py-2 rounded-lg text-xs font-bold"
+              style={{background:"var(--pill-bg)",border:"1px solid var(--border)",color:"var(--muted2)"}}>
+              {lang==="en"?"বাংলা":"English"}
+            </button>
+            <button onClick={toggle}
+              className="px-3 py-2 rounded-lg flex items-center justify-center"
+              style={{background:"var(--pill-bg)",border:"1px solid var(--border)",color:"var(--muted2)"}}>
+              {theme==="dark"?<Sun size={15}/>:<Moon size={15}/>}
+            </button>
           </div>
+          {session ? (
+            <div className="space-y-2 pt-1">
+              <Link href="/dashboard" onClick={()=>setOpen(false)}
+                className="btn-primary w-full py-2 text-sm text-center block">
+                {t("nav_dashboard")}
+              </Link>
+              <button onClick={()=>{handleLogout();setOpen(false);}}
+                className="btn-ghost w-full py-2 text-sm flex items-center justify-center gap-2"
+                style={{color:"var(--red)"}}>
+                <LogOut size={14}/> Log out
+              </button>
+            </div>
+          ) : (
+            <div className="flex gap-2 pt-1">
+              <Link href="/login" onClick={()=>setOpen(false)}
+                className="btn-ghost flex-1 py-2 text-sm text-center">{t("nav_login")}</Link>
+              <Link href="/login" onClick={()=>setOpen(false)}
+                className="btn-primary flex-1 py-2 text-sm text-center">{t("nav_start")}</Link>
+            </div>
+          )}
         </div>
       )}
     </nav>

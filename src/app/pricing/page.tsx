@@ -3,132 +3,110 @@ import { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { SectionLabel } from "@/lib/ui";
-import { Check, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
-const plans = [
-  {
-    name: "Free", price: { monthly: 0, yearly: 0 }, color: "#6B7E93",
-    desc: "ব্যক্তিগত ব্যবহারের জন্য",
-    features: ["HD ভিডিও কল","৪ জন পর্যন্ত","বন্ধু সিস্টেম","ইনভাইট লিংক","৪৫ মিনিট/কল"],
-    cta: "শুরু করুন", href: "/login", popular: false,
-  },
-  {
-    name: "Pro", price: { monthly: 299, yearly: 249 }, color: "#3DF29B",
-    desc: "পেশাদার ব্যবহারকারীদের জন্য",
-    features: ["সব Free ফিচার","১৬ জন পর্যন্ত","সীমাহীন কল","স্ক্রিন শেয়ার","Call recording","Priority support"],
-    cta: "Pro শুরু করুন", href: "/login", popular: true,
-  },
-  {
-    name: "Business", price: { monthly: 799, yearly: 649 }, color: "#4F8EF7",
-    desc: "টিম ও ব্যবসার জন্য",
-    features: ["সব Pro ফিচার","১০০+ জন পর্যন্ত","Custom branding","Analytics dashboard","SSO/SAML","Dedicated support"],
-    cta: "Sales এ যোগাযোগ করুন", href: "/contact", popular: false,
-  },
+const PLANS = [
+  { nameKey:"price_free" as const, descKey:"price_free_desc" as const, ctaKey:"price_cta_free" as const, price:{m:0,y:0}, color:"var(--muted)", href:"/login", popular:false,
+    features:["HD video calls","Up to 4 people","Friend system","Invite links","45 min/call"] },
+  { nameKey:"price_pro" as const, descKey:"price_pro_desc" as const, ctaKey:"price_cta_pro" as const, price:{m:299,y:249}, color:"var(--accent)", href:"/login", popular:true,
+    features:["All Free features","Up to 16 people","Unlimited calls","Screen share","Call recording","Priority support"] },
+  { nameKey:"price_biz" as const, descKey:"price_biz_desc" as const, ctaKey:"price_cta_biz" as const, price:{m:799,y:649}, color:"var(--accent2)", href:"/contact", popular:false,
+    features:["All Pro features","100+ people","Custom branding","Analytics","SSO/SAML","Dedicated support"] },
 ];
 
-const faqs = [
-  { q:"Free plan এ কোনো credit card লাগবে?", a:"না। Free plan সম্পূর্ণ বিনামূল্যে — কোনো card information দিতে হবে না।" },
-  { q:"Yearly plan এ কত সাশ্রয় হবে?", a:"Yearly plan এ প্রতি মাসে প্রায় ১৭% সাশ্রয় হয়। Pro plan এ বছরে ৬০০ টাকা বাঁচবে।" },
-  { q:"Plan upgrade বা downgrade করা যাবে?", a:"হ্যাঁ, যেকোনো সময় plan change করা যাবে। Upgrade এর ক্ষেত্রে বাকি দিনের pro-rata charge হবে।" },
-  { q:"Call recording কোথায় সেভ হবে?", a:"Pro ও Business plan এ recording আপনার cloud storage এ automatically সেভ হবে।" },
-  { q:"Business plan এ কাস্টম domain ব্যবহার করা যাবে?", a:"হ্যাঁ, Business plan এ custom subdomain এবং white-label solution পাওয়া যাবে।" },
+const FAQS = [
+  { q:"Do I need a credit card for the free plan?", a:"No. The free plan is completely free — no card required." },
+  { q:"How much do I save with yearly billing?", a:"About 17% per month. For Pro, that's ৳600 saved per year." },
+  { q:"Can I upgrade or downgrade my plan?", a:"Yes, anytime. Upgrades are pro-rated for the remaining days." },
+  { q:"Where are call recordings saved?", a:"On Pro and Business plans, recordings save to your cloud storage automatically." },
 ];
 
 export default function PricingPage() {
+  const { t } = useI18n();
   const [yearly, setYearly] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [openFaq, setOpenFaq] = useState<number|null>(null);
 
   return (
-    <div style={{ background: "#0B0F14" }} className="min-h-screen">
-      <Navbar />
-      <div className="pt-32 pb-24 px-5">
+    <div style={{background:"var(--bg)"}} className="min-h-screen">
+      <Navbar/>
+      <div className="pt-28 pb-24 px-5">
         <div className="max-w-5xl mx-auto">
-
-          {/* Hero */}
-          <div className="text-center mb-14 fade-up">
-            <SectionLabel>Pricing</SectionLabel>
-            <h1 className="font-sora font-extrabold text-5xl text-[#E9EEF3] mt-5 mb-4">
-              সহজ, স্বচ্ছ মূল্য
-            </h1>
-            <p className="text-[#6B7E93] font-manrope text-lg mb-8">Hidden charge নেই। যেকোনো সময় cancel করুন।</p>
-
-            {/* Toggle */}
-            <div className="inline-flex items-center gap-3 p-1 rounded-xl" style={{ background: "#141B23", border: "1px solid #1F2D3D" }}>
-              <button onClick={() => setYearly(false)}
-                className={`px-5 py-2 rounded-lg text-sm font-semibold font-sora transition-all ${!yearly ? "bg-[#3DF29B] text-[#0B0F14]" : "text-[#6B7E93] hover:text-[#E9EEF3]"}`}>
-                Monthly
-              </button>
-              <button onClick={() => setYearly(true)}
-                className={`px-5 py-2 rounded-lg text-sm font-semibold font-sora transition-all flex items-center gap-2 ${yearly ? "bg-[#3DF29B] text-[#0B0F14]" : "text-[#6B7E93] hover:text-[#E9EEF3]"}`}>
-                Yearly
-                <span className="text-xs px-1.5 py-0.5 rounded-full font-bold"
-                  style={{ background: yearly ? "#0B0F14" : "#3DF29B1A", color: yearly ? "#0B0F14" : "#3DF29B" }}>
-                  -17%
-                </span>
-              </button>
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-4"
+              style={{background:"var(--glow-a)",border:"1px solid var(--accent)",color:"var(--accent)"}}>
+              {t("price_label")}
+            </div>
+            <h1 className="font-black text-5xl mb-4" style={{color:"var(--text)"}}>{t("price_h")}</h1>
+            <p className="mb-8" style={{color:"var(--muted)"}}>{t("price_sub")}</p>
+            <div className="inline-flex items-center gap-1 p-1 rounded-xl"
+              style={{background:"var(--bg3)",border:"1px solid var(--border)"}}>
+              {[[t("price_monthly"),false],[t("price_yearly"),true]].map(([label,val])=>(
+                <button key={String(val)} onClick={()=>setYearly(val as boolean)}
+                  className="px-5 py-2 rounded-lg text-sm font-semibold transition-all flex items-center gap-2"
+                  style={yearly===val?{background:"var(--accent)",color:"#fff"}:{color:"var(--muted)"}}>
+                  {label}
+                  {val&&<span className="text-xs px-1.5 py-0.5 rounded-full font-bold"
+                    style={{background:yearly?"rgba(0,0,0,.2)":"var(--glow-a)",color:yearly?"#fff":"var(--accent)"}}>
+                    {t("price_save")}
+                  </span>}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Cards */}
           <div className="grid md:grid-cols-3 gap-5 mb-20">
-            {plans.map((p) => {
-              const price = yearly ? p.price.yearly : p.price.monthly;
+            {PLANS.map(p=>{
+              const price = yearly ? p.price.y : p.price.m;
               return (
-                <div key={p.name} className={`card p-7 flex flex-col relative transition-all ${p.popular ? "scale-[1.03] border-[#3DF29B44]" : "hover:border-[#2A3A4A]"}`}
-                  style={{ background: p.popular ? "#141B23" : "#0F161E" }}>
-                  {p.popular && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold font-sora text-[#0B0F14]"
-                      style={{ background: "#3DF29B" }}>
-                      ⭐ Most Popular
+                <div key={p.nameKey} className={`ck-card p-7 flex flex-col relative transition-all ${p.popular?"scale-[1.02]":""}`}
+                  style={{background:"var(--card)",borderColor:p.popular?"var(--accent)":undefined}}>
+                  {p.popular&&(
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white"
+                      style={{background:"var(--accent)"}}>
+                      {t("price_popular")}
                     </div>
                   )}
                   <div className="mb-5">
-                    <p className="font-sora font-bold text-lg mb-1" style={{ color: p.color }}>{p.name}</p>
-                    <p className="text-[#6B7E93] text-sm font-manrope">{p.desc}</p>
+                    <p className="font-bold text-lg mb-1" style={{color:p.color}}>{t(p.nameKey)}</p>
+                    <p className="text-sm" style={{color:"var(--muted)"}}>{t(p.descKey)}</p>
                   </div>
                   <div className="mb-6">
-                    <span className="font-sora font-extrabold text-4xl text-[#E9EEF3]">
-                      {price === 0 ? "Free" : `৳${price}`}
+                    <span className="font-black text-4xl" style={{color:"var(--text)"}}>
+                      {price===0?"Free":`৳${price}`}
                     </span>
-                    {price > 0 && <span className="text-[#6B7E93] font-manrope text-sm ml-1">/মাস</span>}
+                    {price>0&&<span className="text-sm ml-1" style={{color:"var(--muted)"}}>{t("price_mo")}</span>}
                   </div>
                   <ul className="space-y-3 mb-8 flex-1">
-                    {p.features.map(f => (
-                      <li key={f} className="flex items-center gap-2.5 text-sm font-manrope text-[#E9EEF3]">
-                        <Check size={15} style={{ color: p.color }} className="shrink-0" />
-                        {f}
+                    {p.features.map(f=>(
+                      <li key={f} className="flex items-center gap-2.5 text-sm" style={{color:"var(--text)"}}>
+                        <Check size={14} style={{color:p.color}} className="shrink-0"/>{f}
                       </li>
                     ))}
                   </ul>
-                  <Link href={p.href}
-                    className={`text-center py-3 rounded-xl font-sora font-bold text-sm transition-all ${p.popular ? "btn-primary" : "btn-ghost"}`}>
-                    {p.cta}
+                  <Link href={p.href} className={`text-center py-3 rounded-xl text-sm font-bold transition-all ${p.popular?"btn-primary":"btn-ghost"}`}>
+                    {t(p.ctaKey)}
                   </Link>
                 </div>
               );
             })}
           </div>
 
-          {/* FAQ */}
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-10">
-              <SectionLabel>FAQ</SectionLabel>
-              <h2 className="font-sora font-extrabold text-3xl text-[#E9EEF3] mt-4">সাধারণ প্রশ্নাবলী</h2>
+              <h2 className="font-black text-3xl" style={{color:"var(--text)"}}>{t("price_faq_h")}</h2>
             </div>
             <div className="space-y-3">
-              {faqs.map((f, i) => (
-                <div key={i} className="card overflow-hidden" style={{ background: "#141B23" }}>
-                  <button onClick={() => setOpenFaq(openFaq === i ? null : i)}
+              {FAQS.map((f,i)=>(
+                <div key={i} className="ck-card overflow-hidden" style={{background:"var(--card)"}}>
+                  <button onClick={()=>setOpenFaq(openFaq===i?null:i)}
                     className="w-full flex items-center justify-between p-5 text-left">
-                    <span className="font-sora font-semibold text-[#E9EEF3] text-sm">{f.q}</span>
-                    {openFaq === i
-                      ? <ChevronUp size={18} className="text-[#3DF29B] shrink-0" />
-                      : <ChevronDown size={18} className="text-[#6B7E93] shrink-0" />
-                    }
+                    <span className="font-semibold text-sm" style={{color:"var(--text)"}}>{f.q}</span>
+                    {openFaq===i?<ChevronUp size={16} style={{color:"var(--accent)"}}/>:<ChevronDown size={16} style={{color:"var(--muted)"}}/>}
                   </button>
-                  {openFaq === i && (
-                    <div className="px-5 pb-5 text-sm text-[#6B7E93] font-manrope leading-relaxed border-t border-[#1F2D3D] pt-4">
+                  {openFaq===i&&(
+                    <div className="px-5 pb-5 text-sm leading-relaxed border-t pt-4"
+                      style={{borderColor:"var(--border)",color:"var(--muted)"}}>
                       {f.a}
                     </div>
                   )}
@@ -138,7 +116,7 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
-      <Footer />
+      <Footer/>
     </div>
   );
 }

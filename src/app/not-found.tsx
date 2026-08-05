@@ -1,49 +1,36 @@
+"use client";
 import Link from "next/link";
-import { Logo } from "@/lib/ui";
-import { Home, RefreshCw } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { Home, LayoutDashboard } from "lucide-react";
 
 export default function NotFound() {
+  const { t } = useI18n();
   return (
-    <div style={{ background: "#0B0F14" }} className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-      {/* Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(ellipse,#FF5C5C15,transparent 70%)", filter: "blur(60px)" }} />
-
+    <div style={{background:"var(--bg)"}} className="min-h-screen flex flex-col items-center justify-center p-6 text-center relative overflow-hidden">
+      <div className="ck-glow-br" style={{opacity:.5}}/>
       <div className="relative z-10 max-w-md">
-        <div className="mb-8">
-          <Logo size="lg" />
-        </div>
-
-        {/* Mockup with disconnected screen */}
-        <div className="card p-6 mb-8 mx-auto max-w-xs" style={{ background: "#141B23" }}>
+        <div className="mb-8"><span className="font-black text-2xl" style={{color:"var(--text)"}}>callkori</span></div>
+        <div className="ck-card p-6 mb-8 mx-auto max-w-xs" style={{background:"var(--card)"}}>
           <div className="aspect-video rounded-xl flex flex-col items-center justify-center gap-3 mb-4"
-            style={{ background: "#0D1117", border: "1px solid #FF5C5C33" }}>
+            style={{background:"var(--bg3)",border:"1px solid var(--border)"}}>
             <div className="text-5xl">📡</div>
             <div className="flex gap-1">
-              {[1,2,3,4,5].map(i => (
-                <div key={i} className="w-1 rounded-full bg-[#FF5C5C]"
-                  style={{ height: `${[8,14,6,18,10][i-1]}px`, opacity: i % 2 === 0 ? 0.3 : 1 }} />
+              {[8,14,6,18,10].map((h,i)=>(
+                <div key={i} className="w-1 rounded-full" style={{height:`${h}px`,background:"var(--red)",opacity:i%2===0?1:.3}}/>
               ))}
             </div>
           </div>
-          <p className="text-[#FF5C5C] text-xs font-sora font-bold tracking-widest text-center">
-            CALL DISCONNECTED
-          </p>
+          <p className="text-xs font-bold tracking-widest text-center" style={{color:"var(--red)"}}>SIGNAL LOST</p>
         </div>
-
-        <h1 className="font-sora font-extrabold text-7xl text-[#E9EEF3] mb-2">404</h1>
-        <h2 className="font-sora font-bold text-2xl text-[#E9EEF3] mb-3">সিগন্যাল পাওয়া যাচ্ছে না</h2>
-        <p className="text-[#6B7E93] font-manrope mb-8 leading-relaxed">
-          আপনি যে পেজটি খুঁজছেন সেটি সরানো হয়েছে বা কখনো ছিল না।
-          হয়তো link টি ভুল।
-        </p>
-
+        <h1 className="font-black text-7xl mb-2" style={{color:"var(--text)"}}>404</h1>
+        <h2 className="font-bold text-2xl mb-3" style={{color:"var(--text)"}}>{t("err_title")}</h2>
+        <p className="mb-8 leading-relaxed" style={{color:"var(--muted)"}}>{t("err_sub")}</p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link href="/" className="btn-primary px-6 py-3 text-sm flex items-center justify-center gap-2">
-            <Home size={16} /> হোমে যান
+            <Home size={16}/>{t("err_home")}
           </Link>
           <Link href="/dashboard" className="btn-ghost px-6 py-3 text-sm flex items-center justify-center gap-2">
-            <RefreshCw size={16} /> ড্যাশবোর্ড
+            <LayoutDashboard size={16}/>{t("err_dash")}
           </Link>
         </div>
       </div>

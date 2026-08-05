@@ -2,48 +2,62 @@
 import { useState } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
-import { Logo, GreenDot, Waveform } from "@/lib/ui";
-import { Mail, Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
+import { Mail, Lock, User, Eye, EyeOff, ArrowRight, Video } from "lucide-react";
 
 function CallPreview() {
+  const tiles = [
+    { initials:"AK", color:"#6366F1", active:true },
+    { initials:"SH", color:"#8B5CF6", active:false },
+    { initials:"TA", color:"#A855F7", active:true },
+    { initials:"RU", color:"#6366F1", active:false },
+  ];
   return (
-    <div className="hidden lg:flex flex-col justify-center items-center h-full p-10"
-      style={{ background: "linear-gradient(135deg,#0D1117 0%,#141B23 100%)" }}>
-      <div className="w-full max-w-xs">
-        <div className="card p-4 mb-6 float-anim" style={{ background: "#141B23" }}>
-          <div className="flex items-center gap-2 mb-3">
-            <GreenDot />
-            <span className="text-[#3DF29B] text-xs font-bold font-sora">LIVE · ck-a3f9b2</span>
+    <div className="hidden lg:flex flex-col justify-center items-center h-full p-12 relative overflow-hidden"
+      style={{background:"var(--bg2)"}}>
+      <div className="ck-glow-br" style={{opacity:.7}}/>
+      <div className="ck-glow-tl"/>
+      <div className="relative z-10 w-full max-w-xs">
+        <div className="ck-card p-4 mb-6" style={{background:"var(--card)"}}>
+          <div className="flex items-center gap-2 mb-4">
+            <span className="w-2 h-2 rounded-full" style={{background:"var(--green)",
+              boxShadow:"0 0 6px var(--green)"}}/>
+            <span className="text-xs font-semibold" style={{color:"var(--green)"}}>
+              LIVE · ck-a3f9b2
+            </span>
           </div>
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            {[{ n:"র", c:"#4F8EF7", sp:true },{ n:"ক", c:"#A855F7", sp:false },
-              { n:"ত", c:"#F97316", sp:false },{ n:"স", c:"#3DF29B", sp:false }].map((t) => (
-              <div key={t.n} className={`rounded-xl aspect-video flex items-center justify-center text-xl font-bold text-white font-sora ${t.sp ? "ring-2 ring-[#3DF29B] glow-green" : ""}`}
-                style={{ background: `linear-gradient(135deg,${t.c}22,${t.c}44)` }}>
-                {t.n}
-                {t.sp && (
-                  <div className="absolute bottom-1 right-2">
-                    <Waveform bars={3} active />
-                  </div>
-                )}
+          <div className="grid grid-cols-2 gap-2 mb-4">
+            {tiles.map(t=>(
+              <div key={t.initials}
+                className={`rounded-xl aspect-video flex items-center justify-center text-xl font-black text-white transition-all ${t.active?"ring-2":"opacity-60"}`}
+                style={{background:`linear-gradient(135deg,${t.color}22,${t.color}44)`,
+                  ringColor:t.active?t.color:"transparent"}}>
+                {t.initials}
               </div>
             ))}
           </div>
           <div className="flex justify-center gap-2">
-            {["🎙️","📷","📵"].map(e => (
-              <div key={e} className="w-8 h-8 rounded-lg bg-[#1A2330] flex items-center justify-center text-sm">{e}</div>
+            {["🎙️","📷","📵"].map(e=>(
+              <div key={e} className="w-8 h-8 rounded-xl flex items-center justify-center text-sm"
+                style={{background:"var(--bg3)"}}>
+                {e}
+              </div>
             ))}
           </div>
         </div>
-        <p className="text-[#E9EEF3] font-sora font-bold text-xl text-center mb-2">ভিডিও কলে কাছে থাকুন</p>
-        <p className="text-[#6B7E93] font-manrope text-sm text-center">বিনামূল্যে একাউন্ট খুলুন এবং এখনই শুরু করুন।</p>
+        <h2 className="font-black text-xl text-center mb-2" style={{color:"var(--text)"}}>
+          Connect in HD
+        </h2>
+        <p className="text-sm text-center" style={{color:"var(--muted)"}}>
+          Free forever. No downloads required.
+        </p>
       </div>
     </div>
   );
 }
 
 export default function LoginPage() {
+  const { t } = useI18n();
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,120 +65,113 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
 
   const handleAuth = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-
+    setLoading(true); setError("");
     if (isSignUp) {
       await authClient.signUp.email({ email, password, name }, {
-        onSuccess: () => {
-          // Full reload so session cookie is properly read
-          window.location.href = "/dashboard";
-        },
-        onError: (ctx) => {
-          setError(ctx.error.message);
-          setLoading(false);
-        },
+        onSuccess: () => { window.location.href = "/dashboard"; },
+        onError: (ctx) => { setError(ctx.error.message); setLoading(false); },
       });
     } else {
       await authClient.signIn.email({ email, password }, {
-        onSuccess: () => {
-          window.location.href = "/dashboard";
-        },
-        onError: (ctx) => {
-          setError(ctx.error.message);
-          setLoading(false);
-        },
+        onSuccess: () => { window.location.href = "/dashboard"; },
+        onError: (ctx) => { setError(ctx.error.message); setLoading(false); },
       });
     }
   };
 
+  const inputClass = "ck-input px-4 py-3 text-sm pl-11";
+
   return (
-    <div className="min-h-screen grid lg:grid-cols-2" style={{ background: "#0B0F14" }}>
+    <div className="min-h-screen grid lg:grid-cols-2" style={{background:"var(--bg)"}}>
       <CallPreview />
 
-      {/* Form side */}
+      {/* Form */}
       <div className="flex flex-col justify-center items-center p-6 lg:p-12">
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-sm">
           <div className="mb-8">
-            <Link href="/"><Logo /></Link>
+            <Link href="/">
+              <span className="font-black text-xl tracking-tight" style={{color:"var(--text)"}}>callkori</span>
+            </Link>
           </div>
 
-          <h1 className="font-sora font-extrabold text-3xl text-[#E9EEF3] mb-2">
-            {isSignUp ? "একাউন্ট তৈরি করুন" : "স্বাগতম ফিরে"}
+          <h1 className="font-black text-2xl mb-1" style={{color:"var(--text)"}}>
+            {isSignUp ? t("login_signup_title") : t("login_title")}
           </h1>
-          <p className="text-[#6B7E93] font-manrope text-sm mb-8">
-            {isSignUp ? "বিনামূল্যে যোগ দিন এবং শুরু করুন।" : "আপনার একাউন্টে লগইন করুন।"}
+          <p className="text-sm mb-7" style={{color:"var(--muted)"}}>
+            {isSignUp ? t("login_signup_sub") : t("login_sub")}
           </p>
 
           {/* Tab switcher */}
-          <div className="flex gap-1 p-1 rounded-xl mb-7" style={{ background: "#141B23", border: "1px solid #1F2D3D" }}>
-            {[["লগইন", false], ["নতুন একাউন্ট", true]].map(([label, val]) => (
-              <button key={String(val)} onClick={() => { setIsSignUp(val); setError(""); }}
-                className={`flex-1 py-2 rounded-lg text-sm font-sora font-semibold transition-all ${isSignUp === val ? "bg-[#3DF29B] text-[#0B0F14]" : "text-[#6B7E93] hover:text-[#E9EEF3]"}`}>
+          <div className="flex gap-1 p-1 rounded-xl mb-6"
+            style={{background:"var(--bg3)", border:"1px solid var(--border)"}}>
+            {[[t("login_tab_in"), false],[t("login_tab_up"), true]].map(([label, val]) => (
+              <button key={String(val)}
+                onClick={() => { setIsSignUp(val); setError(""); }}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold transition-all"
+                style={isSignUp === val
+                  ? {background:"var(--accent)", color:"#fff"}
+                  : {color:"var(--muted)"}}>
                 {label}
               </button>
             ))}
           </div>
 
-          <form onSubmit={handleAuth} className="space-y-4">
+          <form onSubmit={handleAuth} className="space-y-3">
             {isSignUp && (
-              <div className="relative group">
-                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7E93] group-focus-within:text-[#3DF29B] transition-colors" />
-                <input type="text" placeholder="আপনার নাম" required value={name} onChange={e => setName(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm font-manrope text-[#E9EEF3] placeholder-[#6B7E93] outline-none transition-all"
-                  style={{ background: "#141B23", border: "1px solid #1F2D3D" }}
-                  onFocus={e => e.target.style.borderColor = "#3DF29B55"}
-                  onBlur={e => e.target.style.borderColor = "#1F2D3D"} />
+              <div className="relative">
+                <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                  style={{color:"var(--muted)"}}/>
+                <input type="text" placeholder={t("login_name")} required value={name}
+                  onChange={e=>setName(e.target.value)} className={inputClass}/>
               </div>
             )}
-            <div className="relative group">
-              <Mail size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7E93] group-focus-within:text-[#3DF29B] transition-colors" />
-              <input type="email" placeholder="ইমেইল অ্যাড্রেস" required value={email} onChange={e => setEmail(e.target.value)}
-                className="w-full pl-11 pr-4 py-3.5 rounded-xl text-sm font-manrope text-[#E9EEF3] placeholder-[#6B7E93] outline-none transition-all"
-                style={{ background: "#141B23", border: "1px solid #1F2D3D" }}
-                onFocus={e => e.target.style.borderColor = "#3DF29B55"}
-                onBlur={e => e.target.style.borderColor = "#1F2D3D"} />
+            <div className="relative">
+              <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                style={{color:"var(--muted)"}}/>
+              <input type="email" placeholder={t("login_email")} required value={email}
+                onChange={e=>setEmail(e.target.value)} className={inputClass}/>
             </div>
-            <div className="relative group">
-              <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-[#6B7E93] group-focus-within:text-[#3DF29B] transition-colors" />
-              <input type={showPass ? "text" : "password"} placeholder="পাসওয়ার্ড" required value={password} onChange={e => setPassword(e.target.value)}
-                className="w-full pl-11 pr-12 py-3.5 rounded-xl text-sm font-manrope text-[#E9EEF3] placeholder-[#6B7E93] outline-none transition-all"
-                style={{ background: "#141B23", border: "1px solid #1F2D3D" }}
-                onFocus={e => e.target.style.borderColor = "#3DF29B55"}
-                onBlur={e => e.target.style.borderColor = "#1F2D3D"} />
-              <button type="button" onClick={() => setShowPass(v => !v)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#6B7E93] hover:text-[#E9EEF3] transition-colors">
-                {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+            <div className="relative">
+              <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                style={{color:"var(--muted)"}}/>
+              <input type={showPass?"text":"password"} placeholder={t("login_pass")} required
+                value={password} onChange={e=>setPassword(e.target.value)}
+                className={`${inputClass} pr-11`}/>
+              <button type="button" onClick={()=>setShowPass(v=>!v)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 transition-opacity hover:opacity-70"
+                style={{color:"var(--muted)"}}>
+                {showPass ? <EyeOff size={15}/> : <Eye size={15}/>}
               </button>
             </div>
 
             {error && (
-              <div className="rounded-xl px-4 py-3 text-sm font-manrope" style={{ background: "#FF5C5C12", border: "1px solid #FF5C5C33", color: "#FF5C5C" }}>
+              <div className="px-4 py-3 rounded-xl text-sm"
+                style={{background:"rgba(248,113,113,.1)",border:"1px solid rgba(248,113,113,.3)",
+                  color:"var(--red)"}}>
                 {error}
               </div>
             )}
 
             <button type="submit" disabled={loading}
-              className="btn-primary w-full py-3.5 text-sm flex items-center justify-center gap-2 disabled:opacity-60">
-              {loading ? (
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                </svg>
-              ) : (
-                <>{isSignUp ? "একাউন্ট খুলুন" : "লগইন করুন"} <ArrowRight size={16} /></>
-              )}
+              className="btn-primary w-full py-3 text-sm flex items-center justify-center gap-2 disabled:opacity-60 mt-1">
+              {loading
+                ? <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>{t("login_loading")}</>
+                : <>{isSignUp ? t("login_btn_up") : t("login_btn_in")}<ArrowRight size={15}/></>
+              }
             </button>
           </form>
 
-          <p className="mt-8 text-center text-xs text-[#6B7E93] font-manrope">
-            এগিয়ে যাওয়ার মাধ্যমে আপনি আমাদের{" "}
-            <a href="#" className="text-[#3DF29B] hover:underline">Terms</a> ও{" "}
-            <a href="#" className="text-[#3DF29B] hover:underline">Privacy Policy</a> মেনে নিচ্ছেন।
+          <p className="mt-6 text-center text-xs" style={{color:"var(--muted)"}}>
+            {t("login_terms")}{" "}
+            <a href="#" style={{color:"var(--accent)"}} className="hover:underline">{t("login_terms2")}</a>
+            {" "}{t("login_terms3")}{" "}
+            <a href="#" style={{color:"var(--accent)"}} className="hover:underline">{t("login_terms4")}</a>.
           </p>
         </div>
       </div>

@@ -23,7 +23,7 @@ const initials  = (name) =>
 function LocalTile({ videoElRef, screenElRef, camOn, micOn, status, displayName,
   pinned, onPin, screenSharing }) {
 
-  // which video to show: screen share takes priority when active
+  // camera video — always rendered, hidden behind screen share when sharing
   const showScreen = screenSharing && screenElRef;
 
   return (
@@ -34,21 +34,22 @@ function LocalTile({ videoElRef, screenElRef, camOn, micOn, status, displayName,
         ${pinned ? "ring-2 ring-[#4F8EF7]" : ""}`}
       style={{ background:"#0D1117", border:"1px solid #1F2D3D" }}>
 
-      {/* camera video */}
+      {/* camera video — always in DOM, z-index switches */}
       <div ref={videoElRef}
         className="absolute inset-0 w-full h-full"
-        style={{ display: showScreen ? "none" : "block" }} />
+        style={{ zIndex: showScreen ? 0 : 1 }} />
 
-      {/* screen share local preview */}
+      {/* screen share local preview — on top when sharing */}
       {screenSharing && (
         <div ref={screenElRef}
-          className="absolute inset-0 w-full h-full" />
+          className="screen-tile absolute inset-0 w-full h-full"
+          style={{ zIndex: 2 }} />
       )}
 
       {/* avatar when cam off & not screen sharing */}
       {(!camOn || status !== "connected") && !showScreen && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2"
-          style={{ background:"#0D1117", zIndex:1 }}>
+          style={{ background:"#0D1117", zIndex:3 }}>
           <div className="w-14 h-14 rounded-full flex items-center justify-center
             text-xl font-bold text-white font-sora"
             style={{ background: avatarBg(displayName) }}>
@@ -61,36 +62,36 @@ function LocalTile({ videoElRef, screenElRef, camOn, micOn, status, displayName,
       {/* connecting overlay */}
       {status === "connecting" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10"
-          style={{ background:"rgba(11,15,20,.9)" }}>
+          style={{ background:"rgba(11,15,20,.9)", zIndex:10 }}>
           <Loader2 size={24} className="text-[#3DF29B] animate-spin mb-1" />
-          <p className="text-[#6B7E93] text-xs font-manrope">সংযুক্ত হচ্ছে...</p>
+          <p className="text-[#6B7E93] text-xs font-manrope">Connecting...</p>
         </div>
       )}
 
       {/* bottom label */}
-      <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 z-10 flex items-center gap-1.5"
-        style={{ background:"linear-gradient(to top,rgba(11,15,20,.9),transparent)" }}>
+      <div className="absolute bottom-0 left-0 right-0 px-2 py-1.5 flex items-center gap-1.5"
+        style={{ background:"linear-gradient(to top,rgba(11,15,20,.9),transparent)", zIndex:10 }}>
         <GreenDot />
         <span className="text-[#E9EEF3] text-xs font-manrope truncate">
-          আপনি · {displayName}
+          You · {displayName}
         </span>
         {screenSharing && (
-          <span className="text-[#3DF29B] text-[10px] font-sora font-bold ml-1
+          <span className="text-[#3DF29B] text-[10px] font-bold ml-1
             bg-[#3DF29B15] px-1 rounded">● SCREEN</span>
         )}
       </div>
 
       {!micOn && (
-        <div className="absolute top-2 right-2 z-10 p-1 rounded-lg"
-          style={{ background:"#FF5C5C90" }}>
+        <div className="absolute top-2 right-2 p-1 rounded-lg"
+          style={{ background:"#FF5C5C90", zIndex:10 }}>
           <MicOff size={11} className="text-white" />
         </div>
       )}
 
       <button onClick={e=>{e.stopPropagation();onPin();}}
-        className="absolute top-2 left-2 z-10 w-6 h-6 rounded-lg items-center
+        className="absolute top-2 left-2 w-6 h-6 rounded-lg items-center
           justify-center opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex"
-        style={{ background:"rgba(20,27,35,.8)" }}>
+        style={{ background:"rgba(20,27,35,.8)", zIndex:10 }}>
         {pinned
           ? <Minimize2 size={11} className="text-[#4F8EF7]" />
           : <Maximize2 size={11} className="text-[#6B7E93]" />}
@@ -123,7 +124,7 @@ function RemoteTile({ user, pinned, onPin }) {
         ${pinned && !user.isScreen ? "ring-2 ring-[#4F8EF7]" : ""}`}
       style={{ background:"#0D1117", border:"1px solid #1F2D3D" }}>
 
-      <div ref={ref} className="absolute inset-0 w-full h-full" />
+      <div ref={ref} className={`absolute inset-0 w-full h-full ${user.isScreen ? "screen-tile" : ""}`} />
 
       {/* avatar / screen icon when no video */}
       {!user.videoTrack && (
@@ -372,7 +373,16 @@ export default function RoomPage() {
         `/api/agora-token?channel=${encodeURIComponent(String(roomId))}`
       ).then(r=>r.json());
       await sc.join(APP_ID, String(roomId), token??null, `${session?.user?.id}-screen`);
-      const raw   = await AgoraRTC.createScreenVideoTrack({ encoderConfig:"720p_2" }, "disable");
+      const raw = await AgoraRTC.createScreenVideoTrack({
+        encoderConfig: {
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+          frameRate: { ideal: 15, max: 30 },
+          bitrateMax: 2000,
+          bitrateMin: 600,
+        },
+        optimizationMode: "detail", // sharp text/UI instead of motion
+      }, "disable");
       const track = Array.isArray(raw) ? raw[0] : raw;
       screenTrackRef.current = track;
       await sc.publish(track);
