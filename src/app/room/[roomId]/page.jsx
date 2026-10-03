@@ -19,7 +19,6 @@ const avatarBg = (name) => COLORS[(name?.charCodeAt(0)??0) % COLORS.length];
 const initials  = (name) =>
   name ? name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase() : "?";
 
-/* ─── Local video tile ───────────────────────────────── */
 function LocalTile({ videoTrack, screenTrack, camOn, micOn, status, displayName,
   pinned, onPin, screenSharing }) {
 
